@@ -1,21 +1,40 @@
 # Event Manager Backend
 
-This is the backend for the Event Manager application, built with FastAPI.
+FastAPI backend foundation for the university event management system.
 
 ## Setup
 
-1. Install dependencies:
-   ```
-   pip install -r requirements.txt
-   ```
+1. Create and activate a virtual environment
+2. Install dependencies:
 
-2. Run the server:
-   ```
-   uvicorn main:app --reload
-   ```
+```bash
+pip install -r requirements.txt
+```
 
-The API will be available at http://127.0.0.1:8000
+3. Copy environment template and adjust values:
 
-## API Documentation
+```bash
+cp .env.example .env
+```
 
-Once running, visit http://127.0.0.1:8000/docs for interactive API documentation.
+4. Run the server:
+
+```bash
+uvicorn main:app --reload
+```
+
+Server URL: http://127.0.0.1:8000
+
+## API Docs
+
+- Swagger UI: http://127.0.0.1:8000/docs
+- OpenAPI JSON: http://127.0.0.1:8000/openapi.json
+
+## Current Scope (Checkpoint 1)
+
+- App structure and router skeletons
+- Config and async DB session dependency
+- Auth dependency stubs and role guard
+- Placeholder endpoints for auth, users, events, lookups, registrations
+
+Database migrations and full CRUD implementation are handled in later checkpoints.
