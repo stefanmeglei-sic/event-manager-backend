@@ -2,34 +2,33 @@
 -- Run against your Supabase/PostgreSQL project via the SQL editor or psql.
 
 -- Extensie pentru generare automata UUID
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 -- =========================================================
 -- 1. Lookup / nomenclator tables (no foreign keys)
 -- =========================================================
 
 CREATE TABLE IF NOT EXISTS roluri (
-    id   UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id   UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     nume TEXT UNIQUE NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS statusuri (
-    id   UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id   UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     nume TEXT UNIQUE NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS categorii_eveniment (
-    id   UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id   UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     nume TEXT UNIQUE NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS tip_participare (
-    id   UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id   UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     nume TEXT UNIQUE NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS locatii (
-    id           UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     nume_sala    TEXT    NOT NULL,
     corp_cladire TEXT,
     capacitate   INTEGER,
@@ -41,7 +40,7 @@ CREATE TABLE IF NOT EXISTS locatii (
 -- =========================================================
 
 CREATE TABLE IF NOT EXISTS utilizatori (
-    id            UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     email         TEXT        UNIQUE NOT NULL,
     password_hash TEXT,
     rol_id        UUID        REFERENCES roluri(id),
@@ -57,7 +56,7 @@ CREATE INDEX IF NOT EXISTS idx_utilizatori_rol_id ON utilizatori(rol_id);
 -- =========================================================
 
 CREATE TABLE IF NOT EXISTS evenimente (
-    id                  UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id                  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     titlu               TEXT        NOT NULL,
     descriere           TEXT,
     start_date          TIMESTAMPTZ NOT NULL,
@@ -89,7 +88,7 @@ CREATE INDEX IF NOT EXISTS idx_evenimente_active ON evenimente(start_date) WHERE
 -- =========================================================
 
 CREATE TABLE IF NOT EXISTS inscrieri (
-    id                 UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id                 UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     eveniment_id       UUID        REFERENCES evenimente(id),
     user_id            UUID        REFERENCES utilizatori(id),
     tip_participare_id UUID        REFERENCES tip_participare(id),
@@ -110,7 +109,7 @@ CREATE INDEX IF NOT EXISTS idx_inscrieri_tip_participare_id ON inscrieri(tip_par
 -- =========================================================
 
 CREATE TABLE IF NOT EXISTS feedback (
-    id              UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     eveniment_id    UUID    REFERENCES evenimente(id),
     user_id         UUID    REFERENCES utilizatori(id),
     rating          INTEGER CHECK (rating >= 1 AND rating <= 5),
@@ -128,7 +127,7 @@ CREATE INDEX IF NOT EXISTS idx_feedback_user_id      ON feedback(user_id);
 -- =========================================================
 
 CREATE TABLE IF NOT EXISTS sponsori (
-    id         UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     nume       TEXT NOT NULL,
     logo_url   TEXT,
     deleted_at TIMESTAMPTZ
@@ -147,7 +146,7 @@ CREATE INDEX IF NOT EXISTS idx_eveniment_sponsori_sponsor_id ON eveniment_sponso
 -- =========================================================
 
 CREATE TABLE IF NOT EXISTS fisiere (
-    id           UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     eveniment_id UUID        REFERENCES evenimente(id) ON DELETE CASCADE,
     url          TEXT        NOT NULL,
     file_type    TEXT,
@@ -159,7 +158,7 @@ CREATE TABLE IF NOT EXISTS fisiere (
 CREATE INDEX IF NOT EXISTS idx_fisiere_eveniment_id ON fisiere(eveniment_id);
 
 CREATE TABLE IF NOT EXISTS notificari (
-    id           UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id      UUID        REFERENCES utilizatori(id),
     eveniment_id UUID        REFERENCES evenimente(id),
     mesaj        TEXT,
@@ -171,7 +170,7 @@ CREATE INDEX IF NOT EXISTS idx_notificari_user_id      ON notificari(user_id);
 CREATE INDEX IF NOT EXISTS idx_notificari_eveniment_id ON notificari(eveniment_id);
 
 CREATE TABLE IF NOT EXISTS setari (
-    id     UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id     UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     cheie  TEXT UNIQUE NOT NULL,
     valoare TEXT NOT NULL
 );
