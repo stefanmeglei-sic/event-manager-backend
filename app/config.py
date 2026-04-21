@@ -21,6 +21,17 @@ class Settings(BaseSettings):
     jwt_algorithm: str = "HS256"
     jwt_expires_minutes: int = 60
 
+    google_client_id: str = ""
+    google_allowed_domains: str = "student.usv.ro"
+
+    @property
+    def google_allowed_domains_list(self) -> list[str]:
+        return [
+            domain.strip().lower()
+            for domain in self.google_allowed_domains.split(",")
+            if domain.strip()
+        ]
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",
