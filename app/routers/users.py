@@ -1,28 +1,23 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from passlib.context import CryptContext
 from supabase import Client
 
 from app.auth.dependencies import CurrentUser, get_current_user, require_roles
 from app.schemas.user import UserCreate, UserRead, UserUpdate
+from app.services.users_service import (
+    create_user as create_user_service,
+    get_user_by_id,
+    list_users as list_users_service,
+    update_user_by_id,
+)
 from app.supabase_client import get_supabase_client
 
 
 router = APIRouter(prefix="/users", tags=["users"])
 admin_only = require_roles("admin")
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
 def get_users_client() -> Client:
     return get_supabase_client()
-
-
-def _to_user_read(row: dict) -> UserRead:
-    return UserRead(
-        id=row["id"],
-        email=row["email"],
-        rol_id=row["rol_id"],
-        created_at=row.get("created_at"),
-    )
 
 
 @router.post("", response_model=UserRead, status_code=status.HTTP_201_CREATED)
@@ -31,29 +26,7 @@ async def create_user(
     _: CurrentUser = Depends(admin_only),
     client: Client = Depends(get_users_client),
 ) -> UserRead:
-    try:
-        response = (
-            client.table("utilizatori")
-            .insert(
-                {
-                    "email": payload.email,
-                    "password_hash": pwd_context.hash(payload.password),
-                    "rol_id": payload.rol_id,
-                }
-            )
-            .execute()
-        )
-        rows = response.data or []
-        if not rows:
-            raise HTTPException(status_code=500, detail="User was not created")
-        return _to_user_read(rows[0])
-    except HTTPException:
-        raise
-    except Exception as exc:
-        raise HTTPException(
-            status_code=status.HTTP_502_BAD_GATEWAY,
-            detail="Failed to create user",
-        ) from exc
+    return create_user_service(client, payload)
 
 
 @router.get("", response_model=list[UserRead])
@@ -62,20 +35,7 @@ async def list_users(
     _: CurrentUser = Depends(admin_only),
     client: Client = Depends(get_users_client),
 ) -> list[UserRead]:
-    try:
-        response = (
-            client.table("utilizatori")
-            .select("id,email,rol_id,created_at,deleted_at")
-            .is_("deleted_at", None)
-            .limit(limit)
-            .execute()
-        )
-        return [_to_user_read(row) for row in (response.data or [])]
-    except Exception as exc:
-        raise HTTPException(
-            status_code=status.HTTP_502_BAD_GATEWAY,
-            detail="Failed to fetch users",
-        ) from exc
+    return list_users_service(client, limit=limit)
 
 
 @router.get("/{user_id}", response_model=UserRead)
@@ -89,30 +49,7 @@ async def get_user(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Insufficient permissions",
         )
-
-    try:
-        response = (
-            client.table("utilizatori")
-            .select("id,email,rol_id,created_at,deleted_at")
-            .eq("id", user_id)
-            .is_("deleted_at", None)
-            .limit(1)
-            .execute()
-        )
-        rows = response.data or []
-        if not rows:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="User not found",
-            )
-        return _to_user_read(rows[0])
-    except HTTPException:
-        raise
-    except Exception as exc:
-        raise HTTPException(
-            status_code=status.HTTP_502_BAD_GATEWAY,
-            detail="Failed to fetch user",
-        ) from exc
+    return get_user_by_id(client, user_id)
 
 
 @router.patch("/{user_id}", response_model=UserRead)
@@ -122,34 +59,4 @@ async def update_user(
     _: CurrentUser = Depends(admin_only),
     client: Client = Depends(get_users_client),
 ) -> UserRead:
-    updates = payload.model_dump(exclude_none=True)
-    if "password" in updates:
-        updates["password_hash"] = pwd_context.hash(updates.pop("password"))
-    if not updates:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="No fields provided for update",
-        )
-
-    try:
-        response = (
-            client.table("utilizatori")
-            .update(updates)
-            .eq("id", user_id)
-            .is_("deleted_at", None)
-            .execute()
-        )
-        rows = response.data or []
-        if not rows:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="User not found",
-            )
-        return _to_user_read(rows[0])
-    except HTTPException:
-        raise
-    except Exception as exc:
-        raise HTTPException(
-            status_code=status.HTTP_502_BAD_GATEWAY,
-            detail="Failed to update user",
-        ) from exc
+    return update_user_by_id(client, user_id, payload)

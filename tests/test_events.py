@@ -94,20 +94,20 @@ class FakeSupabase:
                 },
                 {
                     "id": "evt-2",
-                    "titlu": "Cancelled event",
+                    "titlu": "Draft event",
                     "descriere": None,
                     "start_date": "2026-06-01T10:00:00+00:00",
                     "end_date": "2026-06-01T11:00:00+00:00",
                     "locatie_id": "loc-1",
                     "categorie_id": "cat-1",
-                    "status_id": "st-cancelled",
+                    "status_id": "st-draft",
                     "organizer_id": "user-1",
                     "tip_participare_id": "tp-1",
                     "max_participanti": 50,
                     "deadline_inscriere": None,
                     "link_inscriere": None,
                     "created_at": "2026-04-22T10:00:00+00:00",
-                    "deleted_at": "2026-04-22T11:00:00+00:00",
+                    "deleted_at": None,
                 },
             ],
             "inscrieri": [
@@ -158,7 +158,7 @@ def test_list_events_only_active() -> None:
 
     assert response.status_code == 200
     data = response.json()
-    assert len(data) == 1
+    assert len(data) == 2
     assert data[0]["id"] == "evt-1"
 
 
@@ -169,6 +169,14 @@ def test_list_events_filters_by_status() -> None:
     data = response.json()
     assert len(data) == 1
     assert data[0]["status_id"] == "st-published"
+
+
+def test_list_events_limit() -> None:
+    response = client.get("/api/v1/events?limit=1")
+
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data) == 1
 
 
 def test_get_event_not_found() -> None:
