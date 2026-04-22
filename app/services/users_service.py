@@ -17,15 +17,18 @@ def to_user_read(row: dict) -> UserRead:
     )
 
 
-def list_users(client: Client, *, limit: int) -> list[UserRead]:
+def list_users(client: Client, *, limit: int, cursor_id: str | None) -> list[UserRead]:
     try:
-        response = (
+        query = (
             client.table("utilizatori")
             .select("id,email,rol_id,created_at,deleted_at")
             .is_("deleted_at", None)
-            .limit(limit)
-            .execute()
         )
+
+        if cursor_id:
+            query = query.gt("id", cursor_id)
+
+        response = query.order("id").limit(limit).execute()
         return [to_user_read(row) for row in (response.data or [])]
     except Exception as exc:
         raise HTTPException(

@@ -26,14 +26,17 @@ def list_events(
     status_id: str | None,
     categorie_id: str | None,
     limit: int,
+    cursor_id: str | None,
 ) -> list[EventRead]:
     try:
-        query = _base_event_select(client).order("start_date")
+        query = _base_event_select(client)
         if status_id:
             query = query.eq("status_id", status_id)
         if categorie_id:
             query = query.eq("categorie_id", categorie_id)
-        response = query.limit(limit).execute()
+        if cursor_id:
+            query = query.gt("id", cursor_id)
+        response = query.order("id").limit(limit).execute()
         return [EventRead(**row) for row in (response.data or [])]
     except Exception as exc:
         raise HTTPException(

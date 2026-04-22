@@ -25,9 +25,17 @@ class FakeTableQuery:
         self._rows = [row for row in self._rows if row.get(column) == value]
         return self
 
+    def gt(self, column: str, value):
+        self._rows = [row for row in self._rows if row.get(column) > value]
+        return self
+
     def is_(self, column: str, value):
         if value is None or value == "null":
             self._rows = [row for row in self._rows if row.get(column) is None]
+        return self
+
+    def order(self, column: str):
+        self._rows.sort(key=lambda row: row.get(column) or "")
         return self
 
     def limit(self, amount: int):
@@ -85,6 +93,14 @@ class FakeSupabase:
                     "created_at": "2026-04-22T10:00:00+00:00",
                     "deleted_at": "2026-04-22T12:00:00+00:00",
                 },
+                {
+                    "id": "user-2",
+                    "email": "student@example.com",
+                    "password_hash": "hashed-student",
+                    "rol_id": "role-student",
+                    "created_at": "2026-04-22T10:10:00+00:00",
+                    "deleted_at": None,
+                },
             ]
         }
 
@@ -139,8 +155,17 @@ def test_list_users_admin_access() -> None:
 
     assert response.status_code == 200
     data = response.json()
-    assert len(data) == 1
+    assert len(data) == 2
     assert data[0]["id"] == "user-1"
+
+
+def test_list_users_cursor() -> None:
+    response = client.get("/api/v1/users?cursor_id=user-1")
+
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data) == 1
+    assert data[0]["id"] == "user-2"
 
 
 def test_get_user_admin_access() -> None:

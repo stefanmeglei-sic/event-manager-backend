@@ -31,6 +31,10 @@ class FakeTableQuery:
         self._rows = [row for row in self._rows if row.get(column) == value]
         return self
 
+    def gt(self, column: str, value):
+        self._rows = [row for row in self._rows if row.get(column) > value]
+        return self
+
     def is_(self, column: str, value):
         if value is None or value == "null":
             self._rows = [row for row in self._rows if row.get(column) is None]
@@ -177,6 +181,15 @@ def test_list_events_limit() -> None:
     assert response.status_code == 200
     data = response.json()
     assert len(data) == 1
+
+
+def test_list_events_cursor() -> None:
+    response = client.get("/api/v1/events?cursor_id=evt-1")
+
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data) == 1
+    assert data[0]["id"] == "evt-2"
 
 
 def test_get_event_not_found() -> None:

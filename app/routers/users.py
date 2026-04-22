@@ -32,10 +32,11 @@ async def create_user(
 @router.get("", response_model=list[UserRead])
 async def list_users(
     limit: int = Query(default=50, ge=1, le=200),
+    cursor_id: str | None = Query(default=None),
     _: CurrentUser = Depends(admin_only),
     client: Client = Depends(get_users_client),
 ) -> list[UserRead]:
-    return list_users_service(client, limit=limit)
+    return list_users_service(client, limit=limit, cursor_id=cursor_id)
 
 
 @router.get("/{user_id}", response_model=UserRead)

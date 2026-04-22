@@ -29,6 +29,7 @@ async def list_events(
     status_id: str | None = Query(default=None),
     categorie_id: str | None = Query(default=None),
     limit: int = Query(default=100, ge=1, le=200),
+    cursor_id: str | None = Query(default=None),
     client: Client = Depends(get_events_client),
 ) -> list[EventRead]:
     return list_events_service(
@@ -36,6 +37,7 @@ async def list_events(
         status_id=status_id,
         categorie_id=categorie_id,
         limit=limit,
+        cursor_id=cursor_id,
     )
 
 
