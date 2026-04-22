@@ -24,12 +24,20 @@ def get_events_client() -> Client:
     return get_supabase_client()
 
 
-@router.get("", response_model=list[EventRead])
+@router.get(
+    "",
+    response_model=list[EventRead],
+    summary="List events",
+    description="Returns active events with optional filters and cursor-based pagination.",
+)
 async def list_events(
-    status_id: str | None = Query(default=None),
-    categorie_id: str | None = Query(default=None),
-    limit: int = Query(default=100, ge=1, le=200),
-    cursor_id: str | None = Query(default=None),
+    status_id: str | None = Query(default=None, description="Filter by event status id."),
+    categorie_id: str | None = Query(default=None, description="Filter by event category id."),
+    limit: int = Query(default=100, ge=1, le=200, description="Maximum number of events to return."),
+    cursor_id: str | None = Query(
+        default=None,
+        description="Cursor for keyset pagination. Returns events with id greater than this value.",
+    ),
     client: Client = Depends(get_events_client),
 ) -> list[EventRead]:
     return list_events_service(
@@ -41,7 +49,13 @@ async def list_events(
     )
 
 
-@router.post("", response_model=EventRead, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "",
+    response_model=EventRead,
+    status_code=status.HTTP_201_CREATED,
+    summary="Create event",
+    description="Creates a new event. Requires admin or organizer role.",
+)
 async def create_event(
     payload: EventCreate,
     _: CurrentUser = Depends(admin_or_organizer),
@@ -50,7 +64,7 @@ async def create_event(
     return create_event_service(client, payload)
 
 
-@router.get("/{event_id}", response_model=EventRead)
+@router.get("/{event_id}", response_model=EventRead, summary="Get event by id")
 async def get_event(
     event_id: str,
     client: Client = Depends(get_events_client),
@@ -58,7 +72,12 @@ async def get_event(
     return get_event_by_id(client, event_id)
 
 
-@router.patch("/{event_id}", response_model=EventRead)
+@router.patch(
+    "/{event_id}",
+    response_model=EventRead,
+    summary="Update event",
+    description="Updates mutable event fields. Requires admin or organizer role.",
+)
 async def update_event(
     event_id: str,
     payload: EventUpdate,
@@ -68,7 +87,12 @@ async def update_event(
     return update_event_by_id(client, event_id, payload)
 
 
-@router.delete("/{event_id}", response_model=MessageResponse)
+@router.delete(
+    "/{event_id}",
+    response_model=MessageResponse,
+    summary="Delete event",
+    description="Soft-deletes an event by setting deleted_at. Requires admin or organizer role.",
+)
 async def delete_event(
     event_id: str,
     _: CurrentUser = Depends(admin_or_organizer),
@@ -77,7 +101,11 @@ async def delete_event(
     return delete_event_by_id(client, event_id)
 
 
-@router.get("/{event_id}/participants", response_model=list[RegistrationRead])
+@router.get(
+    "/{event_id}/participants",
+    response_model=list[RegistrationRead],
+    summary="List event participants",
+)
 async def list_participants(
     event_id: str,
     _: CurrentUser = Depends(get_current_user),

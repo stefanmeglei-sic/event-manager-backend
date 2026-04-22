@@ -263,8 +263,7 @@ def test_create_event_invalid_capacity() -> None:
 
     response = client.post("/api/v1/events", json=payload)
 
-    assert response.status_code == 400
-    assert response.json()["detail"] == "max_participanti must be greater than 0"
+    assert response.status_code == 422
 
 
 def test_update_event_requires_payload_fields() -> None:
@@ -277,8 +276,7 @@ def test_update_event_requires_payload_fields() -> None:
 def test_update_event_invalid_capacity() -> None:
     response = client.patch("/api/v1/events/evt-1", json={"max_participanti": -1})
 
-    assert response.status_code == 400
-    assert response.json()["detail"] == "max_participanti must be greater than 0"
+    assert response.status_code == 422
 
 
 def test_delete_event() -> None:

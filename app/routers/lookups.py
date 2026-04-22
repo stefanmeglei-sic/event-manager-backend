@@ -13,12 +13,12 @@ def get_lookup_client() -> Client:
     return get_supabase_client()
 
 
-@router.get("/roles", response_model=list[LookupRead])
+@router.get("/roles", response_model=list[LookupRead], summary="List roles")
 async def get_roles(client: Client = Depends(get_lookup_client)) -> list[LookupRead]:
     return read_lookup_table(client, table="roluri")
 
 
-@router.get("/event-statuses", response_model=list[LookupRead])
+@router.get("/event-statuses", response_model=list[LookupRead], summary="List event statuses")
 async def get_event_statuses(client: Client = Depends(get_lookup_client)) -> list[LookupRead]:
     return read_lookup_table(
         client,
@@ -27,7 +27,7 @@ async def get_event_statuses(client: Client = Depends(get_lookup_client)) -> lis
     )
 
 
-@router.get("/registration-statuses", response_model=list[LookupRead])
+@router.get("/registration-statuses", response_model=list[LookupRead], summary="List registration statuses")
 async def get_registration_statuses(client: Client = Depends(get_lookup_client)) -> list[LookupRead]:
     return read_lookup_table(
         client,
@@ -36,16 +36,16 @@ async def get_registration_statuses(client: Client = Depends(get_lookup_client))
     )
 
 
-@router.get("/event-categories", response_model=list[LookupRead])
+@router.get("/event-categories", response_model=list[LookupRead], summary="List event categories")
 async def get_event_categories(client: Client = Depends(get_lookup_client)) -> list[LookupRead]:
     return read_lookup_table(client, table="categorii_eveniment")
 
 
-@router.get("/locations", response_model=list[LocationRead])
+@router.get("/locations", response_model=list[LocationRead], summary="List locations")
 async def get_locations(client: Client = Depends(get_lookup_client)) -> list[LocationRead]:
     return read_locations(client)
 
 
-@router.get("/participation-types", response_model=list[LookupRead])
+@router.get("/participation-types", response_model=list[LookupRead], summary="List participation types")
 async def get_participation_types(client: Client = Depends(get_lookup_client)) -> list[LookupRead]:
     return read_lookup_table(client, table="tip_participare")

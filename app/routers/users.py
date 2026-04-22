@@ -29,10 +29,18 @@ async def create_user(
     return create_user_service(client, payload)
 
 
-@router.get("", response_model=list[UserRead])
+@router.get(
+    "",
+    response_model=list[UserRead],
+    summary="List users",
+    description="Admin-only endpoint. Returns active users using cursor-based pagination.",
+)
 async def list_users(
-    limit: int = Query(default=50, ge=1, le=200),
-    cursor_id: str | None = Query(default=None),
+    limit: int = Query(default=50, ge=1, le=200, description="Maximum number of users to return."),
+    cursor_id: str | None = Query(
+        default=None,
+        description="Cursor for keyset pagination. Returns users with id greater than this value.",
+    ),
     _: CurrentUser = Depends(admin_only),
     client: Client = Depends(get_users_client),
 ) -> list[UserRead]:

@@ -20,7 +20,12 @@ def get_registrations_client() -> Client:
     return get_supabase_client()
 
 
-@router.post("", response_model=RegistrationRead, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "",
+    response_model=RegistrationRead,
+    status_code=status.HTTP_201_CREATED,
+    summary="Register to event",
+)
 async def register_to_event(
     event_id: str,
     payload: RegistrationCreate,
@@ -35,7 +40,7 @@ async def register_to_event(
     )
 
 
-@router.patch("/{registration_id}/cancel", response_model=RegistrationRead)
+@router.patch("/{registration_id}/cancel", response_model=RegistrationRead, summary="Cancel registration")
 async def cancel_registration(
     event_id: str,
     registration_id: str,
@@ -50,7 +55,7 @@ async def cancel_registration(
     )
 
 
-@router.patch("/{registration_id}/confirm", response_model=RegistrationRead)
+@router.patch("/{registration_id}/confirm", response_model=RegistrationRead, summary="Confirm registration")
 async def confirm_registration(
     event_id: str,
     registration_id: str,
@@ -64,7 +69,7 @@ async def confirm_registration(
     )
 
 
-@router.patch("/{registration_id}/check-in", response_model=RegistrationRead)
+@router.patch("/{registration_id}/check-in", response_model=RegistrationRead, summary="Check in registration")
 async def check_in_registration(
     event_id: str,
     registration_id: str,
