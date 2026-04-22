@@ -223,11 +223,62 @@ def test_create_event() -> None:
     assert body["titlu"] == "New Event"
 
 
+def test_create_event_invalid_date_range() -> None:
+    payload = {
+        "titlu": "Invalid Event",
+        "descriere": "desc",
+        "start_date": "2026-05-05T12:00:00+00:00",
+        "end_date": "2026-05-05T10:00:00+00:00",
+        "locatie_id": "loc-1",
+        "categorie_id": "cat-1",
+        "status_id": "st-published",
+        "organizer_id": "user-1",
+        "tip_participare_id": "tp-1",
+        "max_participanti": 10,
+        "deadline_inscriere": None,
+        "link_inscriere": None,
+    }
+
+    response = client.post("/api/v1/events", json=payload)
+
+    assert response.status_code == 400
+    assert response.json()["detail"] == "end_date must be after start_date"
+
+
+def test_create_event_invalid_capacity() -> None:
+    payload = {
+        "titlu": "Invalid Capacity",
+        "descriere": "desc",
+        "start_date": "2026-05-05T10:00:00+00:00",
+        "end_date": "2026-05-05T12:00:00+00:00",
+        "locatie_id": "loc-1",
+        "categorie_id": "cat-1",
+        "status_id": "st-published",
+        "organizer_id": "user-1",
+        "tip_participare_id": "tp-1",
+        "max_participanti": 0,
+        "deadline_inscriere": None,
+        "link_inscriere": None,
+    }
+
+    response = client.post("/api/v1/events", json=payload)
+
+    assert response.status_code == 400
+    assert response.json()["detail"] == "max_participanti must be greater than 0"
+
+
 def test_update_event_requires_payload_fields() -> None:
     response = client.patch("/api/v1/events/evt-1", json={})
 
     assert response.status_code == 400
     assert response.json()["detail"] == "No fields provided for update"
+
+
+def test_update_event_invalid_capacity() -> None:
+    response = client.patch("/api/v1/events/evt-1", json={"max_participanti": -1})
+
+    assert response.status_code == 400
+    assert response.json()["detail"] == "max_participanti must be greater than 0"
 
 
 def test_delete_event() -> None:

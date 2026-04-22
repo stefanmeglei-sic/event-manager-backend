@@ -20,6 +20,49 @@ def _base_event_select(client: Client):
     )
 
 
+def _validate_event_create(payload: EventCreate) -> None:
+    if payload.end_date <= payload.start_date:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="end_date must be after start_date",
+        )
+    if payload.max_participanti is not None and payload.max_participanti <= 0:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="max_participanti must be greater than 0",
+        )
+    if payload.deadline_inscriere is not None and payload.deadline_inscriere > payload.start_date:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="deadline_inscriere must be before or equal to start_date",
+        )
+
+
+def _validate_event_update(payload: EventUpdate) -> None:
+    if (
+        payload.start_date is not None
+        and payload.end_date is not None
+        and payload.end_date <= payload.start_date
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="end_date must be after start_date",
+        )
+    if payload.max_participanti is not None and payload.max_participanti <= 0:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="max_participanti must be greater than 0",
+        )
+    if (
+        payload.deadline_inscriere is not None
+        and payload.start_date is not None
+        and payload.deadline_inscriere > payload.start_date
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="deadline_inscriere must be before or equal to start_date",
+        )
+
 def list_events(
     client: Client,
     *,
@@ -46,6 +89,7 @@ def list_events(
 
 
 def create_event(client: Client, payload: EventCreate) -> EventRead:
+    _validate_event_create(payload)
     try:
         response = (
             client.table("evenimente")
@@ -91,6 +135,8 @@ def update_event_by_id(client: Client, event_id: str, payload: EventUpdate) -> E
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="No fields provided for update",
         )
+
+    _validate_event_update(payload)
 
     try:
         response = (
