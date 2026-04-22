@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from passlib.context import CryptContext
 from supabase import Client
 
@@ -53,6 +53,28 @@ async def create_user(
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
             detail="Failed to create user",
+        ) from exc
+
+
+@router.get("", response_model=list[UserRead])
+async def list_users(
+    limit: int = Query(default=50, ge=1, le=200),
+    _: CurrentUser = Depends(admin_only),
+    client: Client = Depends(get_users_client),
+) -> list[UserRead]:
+    try:
+        response = (
+            client.table("utilizatori")
+            .select("id,email,rol_id,created_at,deleted_at")
+            .is_("deleted_at", None)
+            .limit(limit)
+            .execute()
+        )
+        return [_to_user_read(row) for row in (response.data or [])]
+    except Exception as exc:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="Failed to fetch users",
         ) from exc
 
 

@@ -162,6 +162,15 @@ def test_list_events_only_active() -> None:
     assert data[0]["id"] == "evt-1"
 
 
+def test_list_events_filters_by_status() -> None:
+    response = client.get("/api/v1/events?status_id=st-published")
+
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data) == 1
+    assert data[0]["status_id"] == "st-published"
+
+
 def test_get_event_not_found() -> None:
     response = client.get("/api/v1/events/does-not-exist")
 

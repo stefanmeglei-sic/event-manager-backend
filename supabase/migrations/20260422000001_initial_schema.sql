@@ -2,6 +2,7 @@
 -- Run against your Supabase/PostgreSQL project via the SQL editor or psql.
 
 -- Extensie pentru generare automata UUID
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
 -- =========================================================
 -- 1. Lookup / nomenclator tables (no foreign keys)
@@ -70,7 +71,10 @@ CREATE TABLE IF NOT EXISTS evenimente (
     deadline_inscriere  TIMESTAMPTZ,
     link_inscriere      TEXT,
     created_at          TIMESTAMPTZ DEFAULT NOW(),
-    deleted_at          TIMESTAMPTZ
+    deleted_at          TIMESTAMPTZ,
+    CONSTRAINT chk_evenimente_dates CHECK (end_date > start_date),
+    CONSTRAINT chk_evenimente_capacity CHECK (max_participanti IS NULL OR max_participanti > 0),
+    CONSTRAINT chk_evenimente_deadline CHECK (deadline_inscriere IS NULL OR deadline_inscriere <= start_date)
 );
 
 -- FK indexes
@@ -95,7 +99,8 @@ CREATE TABLE IF NOT EXISTS inscrieri (
     status_id          UUID        REFERENCES statusuri(id),
     check_in_at        TIMESTAMPTZ,
     qr_token           TEXT        UNIQUE,
-    created_at         TIMESTAMPTZ DEFAULT NOW()
+    created_at         TIMESTAMPTZ DEFAULT NOW(),
+    CONSTRAINT uq_inscriere_eveniment_user UNIQUE (eveniment_id, user_id)
 );
 
 -- FK indexes

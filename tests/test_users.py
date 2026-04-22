@@ -134,6 +134,15 @@ def test_create_user() -> None:
     assert body["rol_id"] == "role-student"
 
 
+def test_list_users_admin_access() -> None:
+    response = client.get("/api/v1/users")
+
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data) == 1
+    assert data[0]["id"] == "user-1"
+
+
 def test_get_user_admin_access() -> None:
     response = client.get("/api/v1/users/user-1")
 

@@ -42,3 +42,36 @@ INSERT INTO tip_participare (id, nume) VALUES
     ('00000000-0000-0000-0003-000000000002', 'online'),
     ('00000000-0000-0000-0003-000000000003', 'hybrid')
 ON CONFLICT (nume) DO NOTHING;
+
+-- =========================================================
+-- Locatii
+-- =========================================================
+INSERT INTO locatii (id, nume_sala, corp_cladire, capacitate, deleted_at)
+SELECT
+    '00000000-0000-0000-0004-000000000001'::uuid,
+    'Aula Magna',
+    'A',
+    500,
+    NULL
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM locatii
+    WHERE nume_sala = 'Aula Magna'
+      AND corp_cladire = 'A'
+      AND deleted_at IS NULL
+);
+
+INSERT INTO locatii (id, nume_sala, corp_cladire, capacitate, deleted_at)
+SELECT
+    '00000000-0000-0000-0004-000000000002'::uuid,
+    'Laborator C2',
+    'C',
+    35,
+    NULL
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM locatii
+    WHERE nume_sala = 'Laborator C2'
+      AND corp_cladire = 'C'
+      AND deleted_at IS NULL
+);
