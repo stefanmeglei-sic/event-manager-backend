@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from supabase import Client
 
 from app.auth.dependencies import CurrentUser, get_current_user, require_roles
+from app.schemas.common import PaginatedResponse
 from app.schemas.user import UserCreate, UserRead, UserUpdate
 from app.services.users_service import (
     create_user as create_user_service,
@@ -31,20 +32,26 @@ async def create_user(
 
 @router.get(
     "",
-    response_model=list[UserRead],
+    response_model=PaginatedResponse[UserRead],
     summary="List users",
     description="Admin-only endpoint. Returns active users using cursor-based pagination.",
 )
 async def list_users(
     limit: int = Query(default=50, ge=1, le=200, description="Maximum number of users to return."),
-    cursor_id: str | None = Query(
+    cursor: str | None = Query(
         default=None,
-        description="Cursor for keyset pagination. Returns users with id greater than this value.",
+        description="Cursor for keyset pagination. Format: 'created_at|id'.",
     ),
     _: CurrentUser = Depends(admin_only),
     client: Client = Depends(get_users_client),
-) -> list[UserRead]:
-    return list_users_service(client, limit=limit, cursor_id=cursor_id)
+) -> PaginatedResponse[UserRead]:
+    cursor_created_at: str | None = None
+    cursor_id: str | None = None
+    if cursor:
+        parts = cursor.split("|", 1)
+        if len(parts) == 2:
+            cursor_created_at, cursor_id = parts[0], parts[1]
+    return list_users_service(client, limit=limit, cursor_created_at=cursor_created_at, cursor_id=cursor_id)
 
 
 @router.get("/{user_id}", response_model=UserRead)

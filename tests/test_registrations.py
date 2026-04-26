@@ -25,6 +25,10 @@ class FakeTableQuery:
         self._rows = [row for row in self._rows if row.get(column) == value]
         return self
 
+    def neq(self, column: str, value):
+        self._rows = [row for row in self._rows if row.get(column) != value]
+        return self
+
     def limit(self, amount: int):
         self._rows = self._rows[:amount]
         return self
@@ -70,6 +74,7 @@ class FakeSupabase:
                 {"id": "st-confirmed", "nume": "confirmed"},
                 {"id": "st-checked", "nume": "checked_in"},
             ],
+            "eventi": [],
             "inscrieri": [
                 {
                     "id": "reg-1",
@@ -80,7 +85,39 @@ class FakeSupabase:
                     "check_in_at": None,
                     "qr_token": None,
                     "created_at": "2026-04-22T10:00:00+00:00",
-                }
+                },
+                {
+                    "id": "reg-full-occupant",
+                    "eveniment_id": "evt-full",
+                    "user_id": "user-99",
+                    "tip_participare_id": "tp-1",
+                    "status_id": "st-confirmed",
+                    "check_in_at": None,
+                    "qr_token": None,
+                    "created_at": "2026-04-22T10:00:00+00:00",
+                },
+            ],
+            "evenimente": [
+                {
+                    "id": "evt-1",
+                    "max_participanti": 10,
+                    "deadline_inscriere": None,
+                },
+                {
+                    "id": "evt-2",
+                    "max_participanti": 100,
+                    "deadline_inscriere": None,
+                },
+                {
+                    "id": "evt-deadline",
+                    "max_participanti": 100,
+                    "deadline_inscriere": "2026-01-01T00:00:00+00:00",
+                },
+                {
+                    "id": "evt-full",
+                    "max_participanti": 1,
+                    "deadline_inscriere": None,
+                },
             ],
         }
 
@@ -175,3 +212,23 @@ def test_check_in_registration_sets_timestamp_and_status() -> None:
     body = response.json()
     assert body["status_id"] == "st-checked"
     assert body["check_in_at"] is not None
+
+
+def test_register_to_event_deadline_passed() -> None:
+    response = client.post(
+        "/api/v1/events/evt-deadline/registrations",
+        json={"tip_participare_id": "tp-1"},
+    )
+
+    assert response.status_code == 422
+    assert response.json()["detail"] == "Registration deadline has passed"
+
+
+def test_register_to_event_at_full_capacity() -> None:
+    response = client.post(
+        "/api/v1/events/evt-full/registrations",
+        json={"tip_participare_id": "tp-1"},
+    )
+
+    assert response.status_code == 422
+    assert response.json()["detail"] == "Event is at full capacity"

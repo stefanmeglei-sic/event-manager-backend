@@ -17,6 +17,7 @@ class FakeTableQuery:
         self._rows = [dict(row) for row in db.get(table_name, [])]
         self._pending_insert: dict | None = None
         self._pending_update: dict | None = None
+        self._order_columns: list[str] = []
 
     def select(self, _columns: str):
         return self
@@ -35,7 +36,43 @@ class FakeTableQuery:
         return self
 
     def order(self, column: str):
-        self._rows.sort(key=lambda row: row.get(column) or "")
+        self._order_columns.append(column)
+        return self
+
+    def or_(self, condition: str):
+        def eval_simple(row: dict, clause: str) -> bool:
+            if ".gt." in clause:
+                col, val = clause.split(".gt.", 1)
+                return (row.get(col) or "") > val
+            if ".eq." in clause:
+                col, val = clause.split(".eq.", 1)
+                return str(row.get(col) or "") == val
+            return False
+
+        def eval_clause(row: dict, clause: str) -> bool:
+            clause = clause.strip()
+            if clause.startswith("and(") and clause.endswith(")"):
+                inner = clause[4:-1]
+                parts = inner.split(",")
+                return all(eval_simple(row, p.strip()) for p in parts)
+            return eval_simple(row, clause)
+
+        clauses: list[str] = []
+        depth = 0
+        current = ""
+        for ch in condition:
+            if ch == "(":
+                depth += 1
+            elif ch == ")":
+                depth -= 1
+            if ch == "," and depth == 0:
+                clauses.append(current)
+                current = ""
+            else:
+                current += ch
+        if current:
+            clauses.append(current)
+        self._rows = [row for row in self._rows if any(eval_clause(row, c) for c in clauses)]
         return self
 
     def limit(self, amount: int):
@@ -70,6 +107,8 @@ class FakeTableQuery:
                     updated_rows.append(dict(row))
             return FakeResponse(updated_rows)
 
+        if self._order_columns:
+            self._rows.sort(key=lambda row: tuple(row.get(col) or "" for col in self._order_columns))
         return FakeResponse([dict(row) for row in self._rows])
 
 
@@ -155,17 +194,20 @@ def test_list_users_admin_access() -> None:
 
     assert response.status_code == 200
     data = response.json()
-    assert len(data) == 2
-    assert data[0]["id"] == "user-1"
+    assert len(data["items"]) == 2
+    assert data["items"][0]["id"] == "user-1"
+    assert data["next_cursor"] is None
 
 
 def test_list_users_cursor() -> None:
-    response = client.get("/api/v1/users?cursor_id=user-1")
+    # cursor encodes created_at|id of user-1
+    cursor = "2026-04-22T10:00:00+00:00|user-1"
+    response = client.get("/api/v1/users", params={"cursor": cursor})
 
     assert response.status_code == 200
     data = response.json()
-    assert len(data) == 1
-    assert data[0]["id"] == "user-2"
+    assert len(data["items"]) == 1
+    assert data["items"][0]["id"] == "user-2"
 
 
 def test_get_user_admin_access() -> None:

@@ -2,6 +2,7 @@ from fastapi import HTTPException, status
 from passlib.context import CryptContext
 from supabase import Client
 
+from app.schemas.common import PaginatedResponse
 from app.schemas.user import UserCreate, UserRead, UserUpdate
 
 
@@ -17,7 +18,13 @@ def to_user_read(row: dict) -> UserRead:
     )
 
 
-def list_users(client: Client, *, limit: int, cursor_id: str | None) -> list[UserRead]:
+def list_users(
+    client: Client,
+    *,
+    limit: int,
+    cursor_created_at: str | None,
+    cursor_id: str | None,
+) -> PaginatedResponse[UserRead]:
     try:
         query = (
             client.table("utilizatori")
@@ -25,11 +32,21 @@ def list_users(client: Client, *, limit: int, cursor_id: str | None) -> list[Use
             .is_("deleted_at", None)
         )
 
-        if cursor_id:
-            query = query.gt("id", cursor_id)
+        if cursor_created_at and cursor_id:
+            query = query.or_(
+                f"created_at.gt.{cursor_created_at},"
+                f"and(created_at.eq.{cursor_created_at},id.gt.{cursor_id})"
+            )
 
-        response = query.order("id").limit(limit).execute()
-        return [to_user_read(row) for row in (response.data or [])]
+        response = query.order("created_at").order("id").limit(limit).execute()
+        items = [to_user_read(row) for row in (response.data or [])]
+        next_cursor: str | None = None
+        if len(items) == limit:
+            last = items[-1]
+            next_cursor = f"{last.created_at.isoformat()}|{last.id}"
+        return PaginatedResponse(items=items, next_cursor=next_cursor)
+    except HTTPException:
+        raise
     except Exception as exc:
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,

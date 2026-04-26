@@ -11,3 +11,15 @@ class LocationRead(BaseModel):
     nume_sala: str
     corp_cladire: str | None = None
     capacitate: int | None = None
+
+
+class LocationCreate(BaseModel):
+    nume_sala: str
+    corp_cladire: str | None = None
+    capacitate: int | None = None
+
+
+class LocationUpdate(BaseModel):
+    nume_sala: str | None = None
+    corp_cladire: str | None = None
+    capacitate: int | None = None

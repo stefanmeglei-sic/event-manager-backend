@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from google.auth.transport import requests as google_requests
 from google.oauth2 import id_token as google_id_token
 from jose import jwt
+from passlib.context import CryptContext
 from supabase import Client
 
 from app.auth.dependencies import CurrentUser, get_current_user
@@ -18,6 +19,8 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 
 
 GoogleTokenVerifier = Callable[[str, str], dict[str, Any]]
+
+_pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
 def get_auth_settings() -> Settings:
@@ -119,14 +122,47 @@ def _get_or_create_user_from_google_email(client: Client, email: str) -> tuple[s
 
 
 @router.post("/login", response_model=TokenResponse)
-async def login(payload: LoginRequest) -> TokenResponse:
-    # Placeholder implementation for checkpoint 1.
-    settings = get_settings()
+async def login(
+    payload: LoginRequest,
+    settings: Settings = Depends(get_auth_settings),
+    client: Client = Depends(get_auth_client),
+) -> TokenResponse:
+    try:
+        response = (
+            client.table("utilizatori")
+            .select("id,email,password_hash,rol_id")
+            .eq("email", payload.email)
+            .is_("deleted_at", None)
+            .limit(1)
+            .execute()
+        )
+        rows = response.data or []
+    except Exception as exc:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="Failed to authenticate",
+        ) from exc
+
+    if not rows:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid credentials",
+        )
+
+    user = rows[0]
+    password_hash = user.get("password_hash")
+    if not password_hash or not _pwd_context.verify(payload.password, password_hash):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid credentials",
+        )
+
+    role = _get_role_name_by_id(client, user.get("rol_id"))
     return _issue_access_token(
         settings,
-        user_id="placeholder-user-id",
-        role="admin",
-        email=payload.email,
+        user_id=user["id"],
+        role=role,
+        email=user["email"],
     )
 
 

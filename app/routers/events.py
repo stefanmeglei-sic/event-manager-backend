@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, Query, status
 from supabase import Client
 
 from app.auth.dependencies import CurrentUser, get_current_user, require_roles
-from app.schemas.common import MessageResponse
+from app.schemas.common import MessageResponse, PaginatedResponse
 from app.schemas.event import EventCreate, EventRead, EventUpdate
 from app.schemas.registration import RegistrationRead
 from app.services.events_service import (
@@ -26,7 +26,7 @@ def get_events_client() -> Client:
 
 @router.get(
     "",
-    response_model=list[EventRead],
+    response_model=PaginatedResponse[EventRead],
     summary="List events",
     description="Returns active events with optional filters and cursor-based pagination.",
 )
@@ -34,17 +34,24 @@ async def list_events(
     status_id: str | None = Query(default=None, description="Filter by event status id."),
     categorie_id: str | None = Query(default=None, description="Filter by event category id."),
     limit: int = Query(default=100, ge=1, le=200, description="Maximum number of events to return."),
-    cursor_id: str | None = Query(
+    cursor: str | None = Query(
         default=None,
-        description="Cursor for keyset pagination. Returns events with id greater than this value.",
+        description="Cursor for keyset pagination. Format: 'created_at|id'.",
     ),
     client: Client = Depends(get_events_client),
-) -> list[EventRead]:
+) -> PaginatedResponse[EventRead]:
+    cursor_created_at: str | None = None
+    cursor_id: str | None = None
+    if cursor:
+        parts = cursor.split("|", 1)
+        if len(parts) == 2:
+            cursor_created_at, cursor_id = parts[0], parts[1]
     return list_events_service(
         client,
         status_id=status_id,
         categorie_id=categorie_id,
         limit=limit,
+        cursor_created_at=cursor_created_at,
         cursor_id=cursor_id,
     )
 

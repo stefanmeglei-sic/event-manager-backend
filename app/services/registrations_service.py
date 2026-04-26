@@ -45,6 +45,56 @@ def register_to_event(
     current_user: CurrentUser,
 ) -> RegistrationRead:
     try:
+        # Fetch event for deadline and capacity checks
+        event_resp = (
+            client.table("evenimente")
+            .select("max_participanti,deadline_inscriere")
+            .eq("id", event_id)
+            .limit(1)
+            .execute()
+        )
+        event_rows = event_resp.data or []
+        if not event_rows:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Event not found",
+            )
+        event = event_rows[0]
+
+        # Deadline check
+        deadline = event.get("deadline_inscriere")
+        if deadline:
+            if isinstance(deadline, str):
+                from datetime import timezone
+                deadline_dt = datetime.fromisoformat(deadline)
+                if deadline_dt.tzinfo is None:
+                    deadline_dt = deadline_dt.replace(tzinfo=UTC)
+            else:
+                deadline_dt = deadline
+            if datetime.now(UTC) > deadline_dt:
+                raise HTTPException(
+                    status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                    detail="Registration deadline has passed",
+                )
+
+        # Capacity check
+        max_p = event.get("max_participanti")
+        if max_p is not None:
+            cancelled_status_id = get_status_id(client, "cancelled")
+            count_resp = (
+                client.table("inscrieri")
+                .select("id")
+                .eq("eveniment_id", event_id)
+                .neq("status_id", cancelled_status_id)
+                .execute()
+            )
+            current_count = len(count_resp.data or [])
+            if current_count >= max_p:
+                raise HTTPException(
+                    status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                    detail="Event is at full capacity",
+                )
+
         existing = (
             client.table("inscrieri")
             .select("id,status_id")

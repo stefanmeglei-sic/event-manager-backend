@@ -3,7 +3,7 @@ from datetime import UTC, datetime
 from fastapi import HTTPException, status
 from supabase import Client
 
-from app.schemas.common import MessageResponse
+from app.schemas.common import MessageResponse, PaginatedResponse
 from app.schemas.event import EventCreate, EventRead, EventUpdate
 from app.schemas.registration import RegistrationRead
 
@@ -69,18 +69,29 @@ def list_events(
     status_id: str | None,
     categorie_id: str | None,
     limit: int,
+    cursor_created_at: str | None,
     cursor_id: str | None,
-) -> list[EventRead]:
+) -> PaginatedResponse[EventRead]:
     try:
         query = _base_event_select(client)
         if status_id:
             query = query.eq("status_id", status_id)
         if categorie_id:
             query = query.eq("categorie_id", categorie_id)
-        if cursor_id:
-            query = query.gt("id", cursor_id)
-        response = query.order("id").limit(limit).execute()
-        return [EventRead(**row) for row in (response.data or [])]
+        if cursor_created_at and cursor_id:
+            query = query.or_(
+                f"created_at.gt.{cursor_created_at},"
+                f"and(created_at.eq.{cursor_created_at},id.gt.{cursor_id})"
+            )
+        response = query.order("created_at").order("id").limit(limit).execute()
+        items = [EventRead(**row) for row in (response.data or [])]
+        next_cursor: str | None = None
+        if len(items) == limit:
+            last = items[-1]
+            next_cursor = f"{last.created_at.isoformat()}|{last.id}"
+        return PaginatedResponse(items=items, next_cursor=next_cursor)
+    except HTTPException:
+        raise
     except Exception as exc:
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
