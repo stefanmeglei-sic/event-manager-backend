@@ -68,6 +68,8 @@ def list_events(
     *,
     status_id: str | None,
     categorie_id: str | None,
+    organizer_id: str | None = None,
+    search: str | None = None,
     limit: int,
     cursor_created_at: str | None,
     cursor_id: str | None,
@@ -78,6 +80,10 @@ def list_events(
             query = query.eq("status_id", status_id)
         if categorie_id:
             query = query.eq("categorie_id", categorie_id)
+        if organizer_id:
+            query = query.eq("organizer_id", organizer_id)
+        if search:
+            query = query.ilike("titlu", f"%{search}%")
         if cursor_created_at and cursor_id:
             query = query.or_(
                 f"created_at.gt.{cursor_created_at},"
@@ -225,4 +231,45 @@ def list_event_participants(client: Client, event_id: str) -> list[RegistrationR
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
             detail="Failed to fetch participants",
+        ) from exc
+
+
+def validate_event(client: Client, event_id: str, approved: bool) -> EventRead:
+    """Admin approves (publishes) or rejects (cancels) an event."""
+    target_status_name = "published" if approved else "cancelled"
+    try:
+        status_resp = (
+            client.table("statusuri")
+            .select("id")
+            .eq("nume", target_status_name)
+            .limit(1)
+            .execute()
+        )
+        rows = status_resp.data or []
+        if not rows:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Status '{target_status_name}' not found",
+            )
+        new_status_id = rows[0]["id"]
+        update_resp = (
+            client.table("evenimente")
+            .update({"status_id": new_status_id})
+            .eq("id", event_id)
+            .is_("deleted_at", None)
+            .execute()
+        )
+        updated = update_resp.data or []
+        if not updated:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Event not found",
+            )
+        return EventRead(**updated[0])
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="Failed to validate event",
         ) from exc

@@ -1,9 +1,12 @@
+import io
+
 from fastapi import APIRouter, Depends, Query, status
+from fastapi.responses import StreamingResponse
 from supabase import Client
 
 from app.auth.dependencies import CurrentUser, get_current_user, require_roles
 from app.schemas.common import MessageResponse, PaginatedResponse
-from app.schemas.event import EventCreate, EventRead, EventUpdate
+from app.schemas.event import EventCreate, EventRead, EventUpdate, EventValidate
 from app.schemas.registration import RegistrationRead
 from app.services.events_service import (
     create_event as create_event_service,
@@ -12,12 +15,14 @@ from app.services.events_service import (
     list_event_participants,
     list_events as list_events_service,
     update_event_by_id,
+    validate_event,
 )
 from app.supabase_client import get_supabase_client
 
 
 router = APIRouter(prefix="/events", tags=["events"])
 admin_or_organizer = require_roles("admin", "organizer")
+admin_only = require_roles("admin")
 
 
 def get_events_client() -> Client:
@@ -33,6 +38,8 @@ def get_events_client() -> Client:
 async def list_events(
     status_id: str | None = Query(default=None, description="Filter by event status id."),
     categorie_id: str | None = Query(default=None, description="Filter by event category id."),
+    organizer_id: str | None = Query(default=None, description="Filter by organizer user id."),
+    search: str | None = Query(default=None, description="Search events by title."),
     limit: int = Query(default=100, ge=1, le=200, description="Maximum number of events to return."),
     cursor: str | None = Query(
         default=None,
@@ -50,6 +57,8 @@ async def list_events(
         client,
         status_id=status_id,
         categorie_id=categorie_id,
+        organizer_id=organizer_id,
+        search=search,
         limit=limit,
         cursor_created_at=cursor_created_at,
         cursor_id=cursor_id,
@@ -106,6 +115,45 @@ async def delete_event(
     client: Client = Depends(get_events_client),
 ) -> MessageResponse:
     return delete_event_by_id(client, event_id, current_user=current_user)
+
+
+@router.patch(
+    "/{event_id}/validate",
+    response_model=EventRead,
+    summary="Validate event",
+    description="Admin approves (publishes) or rejects (cancels) an event.",
+)
+async def validate_event_route(
+    event_id: str,
+    payload: EventValidate,
+    _: CurrentUser = Depends(admin_only),
+    client: Client = Depends(get_events_client),
+) -> EventRead:
+    return validate_event(client, event_id, payload.approved)
+
+
+@router.get(
+    "/{event_id}/qr",
+    summary="Get event QR code",
+    description="Returns a PNG image of the QR code encoding the event URL.",
+    responses={200: {"content": {"image/png": {}}}},
+)
+async def get_event_qr(
+    event_id: str,
+    client: Client = Depends(get_events_client),
+) -> StreamingResponse:
+    import qrcode  # local import to avoid startup failure if not installed
+
+    get_event_by_id(client, event_id)  # 404 if not found
+
+    url = f"http://localhost:3000/events/{event_id}"
+    img = qrcode.make(url)
+
+    buf = io.BytesIO()
+    img.save(buf, format="PNG")
+    buf.seek(0)
+
+    return StreamingResponse(buf, media_type="image/png")
 
 
 @router.get(

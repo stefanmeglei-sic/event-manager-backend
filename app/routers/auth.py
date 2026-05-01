@@ -197,10 +197,10 @@ async def google_login(
         )
 
     domain = email.split("@")[-1] if "@" in email else ""
-    if domain not in settings.google_allowed_domains_list:
+    if domain != "student.usv.ro":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Email domain is not allowed",
+            detail="Google sign-in is restricted to @student.usv.ro accounts",
         )
 
     try:

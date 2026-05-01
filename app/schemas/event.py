@@ -48,3 +48,7 @@ class EventRead(BaseModel):
     deadline_inscriere: datetime | None = None
     link_inscriere: str | None = None
     created_at: datetime | None = None
+
+
+class EventValidate(BaseModel):
+    approved: bool
