@@ -1,3 +1,4 @@
+import uuid
 from datetime import UTC, datetime
 
 from fastapi import HTTPException, status
@@ -118,6 +119,7 @@ def register_to_event(
                     "user_id": current_user.user_id,
                     "tip_participare_id": payload.tip_participare_id,
                     "status_id": pending_status_id,
+                    "qr_token": str(uuid.uuid4()),
                 }
             )
             .execute()

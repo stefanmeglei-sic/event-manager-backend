@@ -54,6 +54,46 @@ async def list_users(
     return list_users_service(client, limit=limit, cursor_created_at=cursor_created_at, cursor_id=cursor_id)
 
 
+@router.get("/me/registrations", summary="Get my registrations")
+async def get_my_registrations(
+    current_user: CurrentUser = Depends(get_current_user),
+    client: Client = Depends(get_users_client),
+) -> list[dict]:
+    try:
+        resp = (
+            client.table("inscrieri")
+            .select(
+                "id,eveniment_id,tip_participare_id,status_id,check_in_at,qr_token,created_at,"
+                "evenimente(titlu,start_date)"
+            )
+            .eq("user_id", current_user.user_id)
+            .order("created_at", desc=True)
+            .execute()
+        )
+        rows = resp.data or []
+        result = []
+        for row in rows:
+            event_data = row.get("evenimente") or {}
+            result.append({
+                "id": row["id"],
+                "eveniment_id": row["eveniment_id"],
+                "event_title": event_data.get("titlu", ""),
+                "event_start_date": event_data.get("start_date", ""),
+                "tip_participare_id": row.get("tip_participare_id"),
+                "status_id": row["status_id"],
+                "check_in_at": row.get("check_in_at"),
+                "qr_token": row.get("qr_token"),
+                "created_at": row.get("created_at"),
+            })
+        return result
+    except Exception as exc:
+        from fastapi import HTTPException, status as http_status
+        raise HTTPException(
+            status_code=http_status.HTTP_502_BAD_GATEWAY,
+            detail="Failed to fetch registrations",
+        ) from exc
+
+
 @router.get("/{user_id}", response_model=UserRead)
 async def get_user(
     user_id: str,
