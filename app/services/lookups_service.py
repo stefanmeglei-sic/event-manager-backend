@@ -6,7 +6,6 @@ from supabase import Client
 from app.schemas.common import MessageResponse
 from app.schemas.lookup import LocationCreate, LocationRead, LocationUpdate, LookupRead
 
-
 def read_lookup_table(
     client: Client,
     *,
@@ -138,3 +137,40 @@ def delete_location_by_id(client: Client, location_id: str) -> MessageResponse:
             status_code=status.HTTP_502_BAD_GATEWAY,
             detail="Failed to delete location",
         ) from exc
+
+
+def create_lookup_entry(client: Client, table: str, payload: dict) -> LookupRead:
+    try:
+        response = client.table(table).insert(payload).execute()
+        rows = response.data or []
+        if not rows:
+            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Entry was not created")
+        return LookupRead(**rows[0])
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail="Failed to create entry") from exc
+
+
+def update_lookup_entry(client: Client, table: str, entry_id: str, payload: dict) -> LookupRead:
+    updates = {k: v for k, v in payload.items() if v is not None}
+    if not updates:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="No fields to update")
+    try:
+        response = client.table(table).update(updates).eq("id", entry_id).execute()
+        rows = response.data or []
+        if not rows:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Entry not found")
+        return LookupRead(**rows[0])
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail="Failed to update entry") from exc
+
+
+def delete_lookup_entry(client: Client, table: str, entry_id: str) -> MessageResponse:
+    try:
+        client.table(table).delete().eq("id", entry_id).execute()
+        return MessageResponse(detail="Deleted successfully")
+    except Exception as exc:
+        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail="Failed to delete entry") from exc

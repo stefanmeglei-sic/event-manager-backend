@@ -88,10 +88,10 @@ async def get_event(
 async def update_event(
     event_id: str,
     payload: EventUpdate,
-    _: CurrentUser = Depends(admin_or_organizer),
+    current_user: CurrentUser = Depends(admin_or_organizer),
     client: Client = Depends(get_events_client),
 ) -> EventRead:
-    return update_event_by_id(client, event_id, payload)
+    return update_event_by_id(client, event_id, payload, current_user=current_user)
 
 
 @router.delete(
@@ -102,10 +102,10 @@ async def update_event(
 )
 async def delete_event(
     event_id: str,
-    _: CurrentUser = Depends(admin_or_organizer),
+    current_user: CurrentUser = Depends(admin_or_organizer),
     client: Client = Depends(get_events_client),
 ) -> MessageResponse:
-    return delete_event_by_id(client, event_id)
+    return delete_event_by_id(client, event_id, current_user=current_user)
 
 
 @router.get(

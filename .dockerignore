@@ -8,7 +8,6 @@ venv/
 .github/
 .agents/
 .augment/
-tests/
 *.md
 Dockerfile
 docker-compose*.yml

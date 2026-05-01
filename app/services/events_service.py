@@ -139,7 +139,7 @@ def get_event_by_id(client: Client, event_id: str) -> EventRead:
         ) from exc
 
 
-def update_event_by_id(client: Client, event_id: str, payload: EventUpdate) -> EventRead:
+def update_event_by_id(client: Client, event_id: str, payload: EventUpdate, *, current_user=None) -> EventRead:
     updates = payload.model_dump(mode="json", exclude_none=True)
     if not updates:
         raise HTTPException(
@@ -148,6 +148,11 @@ def update_event_by_id(client: Client, event_id: str, payload: EventUpdate) -> E
         )
 
     _validate_event_update(payload)
+
+    if current_user is not None and current_user.role != "admin":
+        event = get_event_by_id(client, event_id)
+        if event.organizer_id != current_user.user_id:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You can only edit your own events")
 
     try:
         response = (
@@ -173,7 +178,12 @@ def update_event_by_id(client: Client, event_id: str, payload: EventUpdate) -> E
         ) from exc
 
 
-def delete_event_by_id(client: Client, event_id: str) -> MessageResponse:
+def delete_event_by_id(client: Client, event_id: str, *, current_user=None) -> MessageResponse:
+    if current_user is not None and current_user.role != "admin":
+        event = get_event_by_id(client, event_id)
+        if event.organizer_id != current_user.user_id:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You can only delete your own events")
+
     try:
         response = (
             client.table("evenimente")

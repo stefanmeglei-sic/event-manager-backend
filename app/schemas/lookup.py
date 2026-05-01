@@ -6,6 +6,30 @@ class LookupRead(BaseModel):
     nume: str
 
 
+class LookupCreate(BaseModel):
+    nume: str
+
+
+class LookupUpdate(BaseModel):
+    nume: str | None = None
+
+
+class StatusCreate(BaseModel):
+    nume: str
+    tip: str  # 'event' or 'registration'
+
+
+class StatusUpdate(BaseModel):
+    nume: str | None = None
+    tip: str | None = None
+
+
+class StatusRead(BaseModel):
+    id: str
+    nume: str
+    tip: str
+
+
 class LocationRead(BaseModel):
     id: str
     nume_sala: str
