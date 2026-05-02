@@ -105,6 +105,7 @@ class FakeSupabase:
                 },
                 {
                     "id": "evt-2",
+                    "organizer_id": "org-1",
                     "max_participanti": 100,
                     "deadline_inscriere": None,
                 },
@@ -142,6 +143,10 @@ def _override_user_2() -> CurrentUser:
 
 def _override_admin() -> CurrentUser:
     return CurrentUser(user_id="admin-1", role="admin", email="admin@example.com")
+
+
+def _override_owner_organizer() -> CurrentUser:
+    return CurrentUser(user_id="org-1", role="organizer", email="organizer@example.com")
 
 
 def setup_function() -> None:
@@ -232,3 +237,15 @@ def test_register_to_event_at_full_capacity() -> None:
 
     assert response.status_code == 422
     assert response.json()["detail"] == "Event is at full capacity"
+
+
+def test_register_to_event_blocks_organizer_for_own_event() -> None:
+    app.dependency_overrides[get_current_user] = _override_owner_organizer
+
+    response = client.post(
+        "/api/v1/events/evt-2/registrations",
+        json={"tip_participare_id": "tp-2"},
+    )
+
+    assert response.status_code == 403
+    assert response.json()["detail"] == "Organizers cannot register to their own events"

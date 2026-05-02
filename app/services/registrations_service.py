@@ -49,7 +49,7 @@ def register_to_event(
         # Fetch event for deadline and capacity checks
         event_resp = (
             client.table("evenimente")
-            .select("max_participanti,deadline_inscriere")
+            .select("organizer_id,max_participanti,deadline_inscriere")
             .eq("id", event_id)
             .limit(1)
             .execute()
@@ -61,6 +61,13 @@ def register_to_event(
                 detail="Event not found",
             )
         event = event_rows[0]
+
+        # Organizers cannot register to events they own.
+        if current_user.role == "organizer" and event.get("organizer_id") == current_user.user_id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Organizers cannot register to their own events",
+            )
 
         # Deadline check
         deadline = event.get("deadline_inscriere")
