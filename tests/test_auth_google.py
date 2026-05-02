@@ -148,7 +148,7 @@ def test_google_login_rejects_forbidden_domain() -> None:
     )
 
     assert response.status_code == 403
-    assert response.json()["detail"] == "Email domain is not allowed"
+    assert response.json()["detail"] == "Google sign-in is restricted to @student.usv.ro accounts"
 
 
 def test_google_login_for_existing_user_returns_token() -> None:

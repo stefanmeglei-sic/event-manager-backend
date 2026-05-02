@@ -180,6 +180,51 @@ def cancel_registration(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Registration not found",
             )
+
+        # B9: Waiting-list auto-promotion
+        try:
+            event_cap_resp = (
+                client.table("evenimente")
+                .select("max_participanti")
+                .eq("id", event_id)
+                .limit(1)
+                .execute()
+            )
+            cap_rows = event_cap_resp.data or []
+            if cap_rows:
+                max_p = cap_rows[0].get("max_participanti")
+                if max_p is not None:
+                    confirmed_status_id = get_status_id(client, "confirmed")
+                    confirmed_count_resp = (
+                        client.table("inscrieri")
+                        .select("id")
+                        .eq("eveniment_id", event_id)
+                        .eq("status_id", confirmed_status_id)
+                        .execute()
+                    )
+                    confirmed_count = len(confirmed_count_resp.data or [])
+                    if confirmed_count < max_p:
+                        waiting_status_id = get_status_id(client, "waiting")
+                        oldest_resp = (
+                            client.table("inscrieri")
+                            .select("id")
+                            .eq("eveniment_id", event_id)
+                            .eq("status_id", waiting_status_id)
+                            .order("created_at", desc=False)
+                            .limit(1)
+                            .execute()
+                        )
+                        oldest_rows = oldest_resp.data or []
+                        if oldest_rows:
+                            promote_id = oldest_rows[0]["id"]
+                            client.table("inscrieri").update(
+                                {"status_id": confirmed_status_id}
+                            ).eq("id", promote_id).execute()
+        except HTTPException:
+            pass  # Missing status or other lookup failure — don't break cancellation
+        except Exception:
+            pass  # Auto-promotion is best-effort
+
         return to_registration_read(updated_rows[0])
     except HTTPException:
         raise

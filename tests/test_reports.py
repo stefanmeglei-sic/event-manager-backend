@@ -19,12 +19,12 @@ def make_admin_token(client: TestClient) -> str:
 
 def test_summary_requires_auth(client: TestClient):
     resp = client.get("/api/v1/reports/summary")
-    assert resp.status_code == 403
+    assert resp.status_code == 401
 
 
 def test_events_by_month_requires_auth(client: TestClient):
     resp = client.get("/api/v1/reports/events-by-month")
-    assert resp.status_code == 403
+    assert resp.status_code == 401
 
 
 def test_summary_admin(client: TestClient):

@@ -167,3 +167,86 @@ async def list_participants(
     client: Client = Depends(get_events_client),
 ) -> list[RegistrationRead]:
     return list_event_participants(client, event_id)
+
+
+@router.get(
+    "/{event_id}/ics",
+    summary="Export event as ICS",
+    description="Returns an iCalendar (.ics) file for the event. No authentication required.",
+    responses={200: {"content": {"text/calendar": {}}}},
+)
+async def get_event_ics(
+    event_id: str,
+    client: Client = Depends(get_events_client),
+) -> StreamingResponse:
+    from datetime import datetime, timezone, timedelta
+    from icalendar import Calendar, Event as ICalEvent
+
+    # Fetch event
+    event_resp = (
+        client.table("evenimente")
+        .select("id,titlu,descriere,start_date,end_date,locatie_id")
+        .eq("id", event_id)
+        .limit(1)
+        .execute()
+    )
+    event_rows = event_resp.data or []
+    if not event_rows:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=404, detail="Event not found")
+    ev = event_rows[0]
+
+    # Fetch location name
+    location_name = ""
+    if ev.get("locatie_id"):
+        loc_resp = (
+            client.table("locatii")
+            .select("nume_sala,corp_cladire")
+            .eq("id", ev["locatie_id"])
+            .limit(1)
+            .execute()
+        )
+        loc_rows = loc_resp.data or []
+        if loc_rows:
+            loc = loc_rows[0]
+            parts = [loc.get("corp_cladire", ""), loc.get("nume_sala", "")]
+            location_name = ", ".join(p for p in parts if p)
+
+    # Parse datetimes
+    def parse_dt(val: str | None):
+        if not val:
+            return None
+        dt = datetime.fromisoformat(val)
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        return dt
+
+    dtstart = parse_dt(ev.get("start_date"))
+    dtend = parse_dt(ev.get("end_date"))
+    if dtstart is None:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=422, detail="Event has no start date")
+    if dtend is None:
+        dtend = dtstart + timedelta(hours=1)
+
+    # Build iCal
+    cal = Calendar()
+    cal.add("prodid", "-//USV Event Manager//usv.ro//")
+    cal.add("version", "2.0")
+
+    ical_event = ICalEvent()
+    ical_event.add("uid", f"{event_id}@usv.ro")
+    ical_event.add("summary", ev.get("titlu", ""))
+    ical_event.add("description", ev.get("descriere", "") or "")
+    ical_event.add("dtstart", dtstart)
+    ical_event.add("dtend", dtend)
+    ical_event.add("location", location_name)
+    cal.add_component(ical_event)
+
+    buf = io.BytesIO(cal.to_ical())
+    buf.seek(0)
+    return StreamingResponse(
+        buf,
+        media_type="text/calendar; charset=utf-8",
+        headers={"Content-Disposition": f'attachment; filename="event-{event_id}.ics"'},
+    )
