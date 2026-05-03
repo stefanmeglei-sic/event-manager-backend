@@ -1,6 +1,7 @@
 from fastapi.testclient import TestClient
 
 from app.auth.dependencies import CurrentUser, get_current_user
+from app.localization import get_message
 from app.main import app
 from app.routers.registrations import admin_or_organizer, get_registrations_client
 
@@ -182,7 +183,7 @@ def test_register_to_event_conflict_if_already_registered() -> None:
     )
 
     assert response.status_code == 409
-    assert response.json()["detail"] == "User is already registered to this event"
+    assert response.json()["detail"] == get_message("errors.registrations.already_registered")
 
 
 def test_cancel_registration_denies_non_owner_non_admin() -> None:
@@ -191,7 +192,7 @@ def test_cancel_registration_denies_non_owner_non_admin() -> None:
     response = client.patch("/api/v1/events/evt-1/registrations/reg-1/cancel")
 
     assert response.status_code == 403
-    assert response.json()["detail"] == "Insufficient permissions"
+    assert response.json()["detail"] == get_message("errors.permissions.insufficient")
 
 
 def test_cancel_registration_allows_owner() -> None:
@@ -226,7 +227,7 @@ def test_register_to_event_deadline_passed() -> None:
     )
 
     assert response.status_code == 422
-    assert response.json()["detail"] == "Registration deadline has passed"
+    assert response.json()["detail"] == get_message("errors.registrations.deadline_passed")
 
 
 def test_register_to_event_at_full_capacity() -> None:
@@ -236,7 +237,7 @@ def test_register_to_event_at_full_capacity() -> None:
     )
 
     assert response.status_code == 422
-    assert response.json()["detail"] == "Event is at full capacity"
+    assert response.json()["detail"] == get_message("errors.registrations.full_capacity")
 
 
 def test_register_to_event_blocks_organizer_for_own_event() -> None:
@@ -248,4 +249,4 @@ def test_register_to_event_blocks_organizer_for_own_event() -> None:
     )
 
     assert response.status_code == 403
-    assert response.json()["detail"] == "Organizers cannot register to their own events"
+    assert response.json()["detail"] == get_message("errors.registrations.organizer_own_event")

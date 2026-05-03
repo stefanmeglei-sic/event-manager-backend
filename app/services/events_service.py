@@ -3,6 +3,7 @@ from datetime import UTC, datetime
 from fastapi import HTTPException, status
 from supabase import Client
 
+from app.localization import get_message
 from app.schemas.common import MessageResponse, PaginatedResponse
 from app.schemas.event import EventCreate, EventRead, EventUpdate
 from app.schemas.registration import RegistrationRead
@@ -24,17 +25,17 @@ def _validate_event_create(payload: EventCreate) -> None:
     if payload.end_date <= payload.start_date:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="end_date must be after start_date",
+            detail=get_message("errors.events.invalid_end_date"),
         )
     if payload.max_participanti is not None and payload.max_participanti <= 0:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="max_participanti must be greater than 0",
+            detail=get_message("errors.events.invalid_max_participants"),
         )
     if payload.deadline_inscriere is not None and payload.deadline_inscriere > payload.start_date:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="deadline_inscriere must be before or equal to start_date",
+            detail=get_message("errors.events.invalid_deadline"),
         )
 
 
@@ -46,12 +47,12 @@ def _validate_event_update(payload: EventUpdate) -> None:
     ):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="end_date must be after start_date",
+            detail=get_message("errors.events.invalid_end_date"),
         )
     if payload.max_participanti is not None and payload.max_participanti <= 0:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="max_participanti must be greater than 0",
+            detail=get_message("errors.events.invalid_max_participants"),
         )
     if (
         payload.deadline_inscriere is not None
@@ -60,7 +61,7 @@ def _validate_event_update(payload: EventUpdate) -> None:
     ):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="deadline_inscriere must be before or equal to start_date",
+            detail=get_message("errors.events.invalid_deadline"),
         )
 
 def list_events(
@@ -116,7 +117,7 @@ def list_events(
     except Exception as exc:
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
-            detail="Failed to fetch events",
+            detail=get_message("errors.events.failed_to_fetch_events"),
         ) from exc
 
 
@@ -130,14 +131,14 @@ def create_event(client: Client, payload: EventCreate) -> EventRead:
         )
         rows = response.data or []
         if not rows:
-            raise HTTPException(status_code=500, detail="Event was not created")
+            raise HTTPException(status_code=500, detail=get_message("errors.events.event_not_created"))
         return EventRead(**rows[0])
     except HTTPException:
         raise
     except Exception as exc:
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
-            detail="Failed to create event",
+            detail=get_message("errors.events.failed_to_create_event"),
         ) from exc
 
 
@@ -148,7 +149,7 @@ def get_event_by_id(client: Client, event_id: str) -> EventRead:
         if not rows:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail="Event not found",
+                detail=get_message("errors.events.event_not_found"),
             )
         return EventRead(**rows[0])
     except HTTPException:
@@ -156,7 +157,7 @@ def get_event_by_id(client: Client, event_id: str) -> EventRead:
     except Exception as exc:
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
-            detail="Failed to fetch event",
+            detail=get_message("errors.events.failed_to_fetch_event"),
         ) from exc
 
 
@@ -165,7 +166,7 @@ def update_event_by_id(client: Client, event_id: str, payload: EventUpdate, *, c
     if not updates:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="No fields provided for update",
+            detail=get_message("errors.events.no_fields_for_update"),
         )
 
     _validate_event_update(payload)
@@ -173,7 +174,7 @@ def update_event_by_id(client: Client, event_id: str, payload: EventUpdate, *, c
     if current_user is not None and current_user.role != "admin":
         event = get_event_by_id(client, event_id)
         if event.organizer_id != current_user.user_id:
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You can only edit your own events")
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=get_message("errors.events.edit_own_only"))
 
     try:
         response = (
@@ -187,7 +188,7 @@ def update_event_by_id(client: Client, event_id: str, payload: EventUpdate, *, c
         if not rows:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail="Event not found",
+                detail=get_message("errors.events.event_not_found"),
             )
         return EventRead(**rows[0])
     except HTTPException:
@@ -195,7 +196,7 @@ def update_event_by_id(client: Client, event_id: str, payload: EventUpdate, *, c
     except Exception as exc:
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
-            detail="Failed to update event",
+            detail=get_message("errors.events.failed_to_update_event"),
         ) from exc
 
 
@@ -203,7 +204,7 @@ def delete_event_by_id(client: Client, event_id: str, *, current_user=None) -> M
     if current_user is not None and current_user.role != "admin":
         event = get_event_by_id(client, event_id)
         if event.organizer_id != current_user.user_id:
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You can only delete your own events")
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=get_message("errors.events.delete_own_only"))
 
     try:
         response = (
@@ -217,15 +218,15 @@ def delete_event_by_id(client: Client, event_id: str, *, current_user=None) -> M
         if not rows:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail="Event not found",
+                detail=get_message("errors.events.event_not_found"),
             )
-        return MessageResponse(detail="Event deleted")
+        return MessageResponse(detail=get_message("errors.events.event_deleted"))
     except HTTPException:
         raise
     except Exception as exc:
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
-            detail="Failed to delete event",
+            detail=get_message("errors.events.failed_to_delete_event"),
         ) from exc
 
 
@@ -245,7 +246,7 @@ def list_event_participants(client: Client, event_id: str) -> list[RegistrationR
     except Exception as exc:
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
-            detail="Failed to fetch participants",
+            detail=get_message("errors.events.failed_to_fetch_participants"),
         ) from exc
 
 
@@ -264,7 +265,7 @@ def validate_event(client: Client, event_id: str, approved: bool) -> EventRead:
         if not rows:
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=f"Status '{target_status_name}' not found",
+                detail=get_message("errors.events.status_not_found", status_name=target_status_name),
             )
         new_status_id = rows[0]["id"]
         update_resp = (
@@ -278,7 +279,7 @@ def validate_event(client: Client, event_id: str, approved: bool) -> EventRead:
         if not updated:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail="Event not found",
+                detail=get_message("errors.events.event_not_found"),
             )
         return EventRead(**updated[0])
     except HTTPException:
@@ -286,5 +287,5 @@ def validate_event(client: Client, event_id: str, approved: bool) -> EventRead:
     except Exception as exc:
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
-            detail="Failed to validate event",
+            detail=get_message("errors.events.failed_to_validate_event"),
         ) from exc

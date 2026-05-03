@@ -5,6 +5,7 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jose import JWTError, jwt
 
 from app.config import get_settings
+from app.localization import get_message
 
 
 security = HTTPBearer(auto_error=False)
@@ -25,7 +26,7 @@ def get_current_user(
     if credentials is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Missing bearer token",
+            detail=get_message("errors.auth.missing_bearer_token"),
         )
 
     try:
@@ -37,7 +38,7 @@ def get_current_user(
     except JWTError as exc:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid token",
+            detail=get_message("errors.auth.invalid_token"),
         ) from exc
 
     user_id = payload.get("sub")
@@ -47,7 +48,7 @@ def get_current_user(
     if not user_id or not role:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Token payload is missing required claims",
+            detail=get_message("errors.auth.token_payload_missing_claims"),
         )
 
     return CurrentUser(user_id=user_id, role=role, email=email)
@@ -58,7 +59,7 @@ def require_roles(*allowed_roles: str):
         if current_user.role not in allowed_roles:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="Insufficient permissions",
+                detail=get_message("errors.permissions.insufficient"),
             )
         return current_user
 

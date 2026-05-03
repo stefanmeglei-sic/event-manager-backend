@@ -2,6 +2,7 @@ from passlib.context import CryptContext
 
 from fastapi.testclient import TestClient
 
+from app.localization import get_message
 from app.main import app
 from app.routers.auth import get_auth_client
 
@@ -112,4 +113,4 @@ def test_me_requires_token() -> None:
     response = client.get("/api/v1/auth/me")
 
     assert response.status_code == 401
-    assert response.json()["detail"] == "Missing bearer token"
+    assert response.json()["detail"] == get_message("errors.auth.missing_bearer_token")

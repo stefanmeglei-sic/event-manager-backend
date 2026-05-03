@@ -5,6 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from supabase import Client
 
 from app.auth.dependencies import CurrentUser, get_current_user
+from app.localization import get_message
 from app.schemas.feedback import FeedbackCreate, FeedbackOut
 from app.supabase_client import get_supabase_client
 
@@ -40,7 +41,7 @@ async def create_feedback(
     if not status_rows:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Missing 'confirmed' status in statusuri table",
+            detail=get_message("errors.feedback.missing_confirmed_status"),
         )
     confirmed_status_id = status_rows[0]["id"]
 
@@ -57,7 +58,7 @@ async def create_feedback(
     if not (reg_resp.data or []):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="You must have a confirmed registration to submit feedback",
+            detail=get_message("errors.feedback.registration_required"),
         )
 
     # Insert feedback
@@ -77,7 +78,7 @@ async def create_feedback(
     if not rows:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Feedback was not created",
+            detail=get_message("errors.feedback.feedback_not_created"),
         )
     return _to_feedback_out(rows[0])
 

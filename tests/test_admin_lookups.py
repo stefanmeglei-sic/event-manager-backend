@@ -1,6 +1,7 @@
 from fastapi.testclient import TestClient
 
 from app.auth.dependencies import CurrentUser
+from app.localization import get_message
 from app.main import app
 from app.routers.admin import admin_only, get_client
 
@@ -126,7 +127,7 @@ def test_delete_category_admin() -> None:
     response = client.delete("/api/v1/admin/categories/cat-1")
 
     assert response.status_code == 200
-    assert response.json()["detail"] == "Deleted successfully"
+    assert response.json()["detail"] == get_message("errors.lookups.deleted_successfully")
 
 
 # ── Participation Types ───────────────────────────────────────────────────────
@@ -159,4 +160,4 @@ def test_delete_participation_type_admin() -> None:
     response = client.delete("/api/v1/admin/participation-types/tp-1")
 
     assert response.status_code == 200
-    assert response.json()["detail"] == "Deleted successfully"
+    assert response.json()["detail"] == get_message("errors.lookups.deleted_successfully")

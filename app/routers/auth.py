@@ -11,6 +11,7 @@ from supabase import Client
 
 from app.auth.dependencies import CurrentUser, get_current_user
 from app.config import Settings, get_settings
+from app.localization import get_message
 from app.schemas.auth import GoogleLoginRequest, LoginRequest, TokenResponse
 from app.supabase_client import get_supabase_client
 
@@ -70,7 +71,7 @@ def _get_role_id_by_name(client: Client, role_name: str) -> str:
     if not rows:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Missing role: {role_name}",
+            detail=get_message("errors.roles.missing_role", role_name=role_name),
         )
     return rows[0]["id"]
 
@@ -116,7 +117,7 @@ def _get_or_create_user_from_google_email(client: Client, email: str) -> tuple[s
     if not created_rows:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="User could not be created",
+            detail=get_message("errors.users.user_not_created"),
         )
     return created_rows[0]["id"], "student"
 
@@ -140,13 +141,13 @@ async def login(
     except Exception as exc:
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
-            detail="Failed to authenticate",
+            detail=get_message("errors.auth.failed_to_authenticate"),
         ) from exc
 
     if not rows:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid credentials",
+            detail=get_message("errors.auth.invalid_credentials"),
         )
 
     user = rows[0]
@@ -154,7 +155,7 @@ async def login(
     if not password_hash or not _pwd_context.verify(payload.password, password_hash):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid credentials",
+            detail=get_message("errors.auth.invalid_credentials"),
         )
 
     role = _get_role_name_by_id(client, user.get("rol_id"))
@@ -176,7 +177,7 @@ async def google_login(
     if not settings.google_client_id:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Google auth is not configured",
+            detail=get_message("errors.auth.google_not_configured"),
         )
 
     try:
@@ -184,7 +185,7 @@ async def google_login(
     except Exception as exc:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid Google ID token",
+            detail=get_message("errors.auth.invalid_google_token"),
         ) from exc
 
     email = str(google_payload.get("email", "")).strip().lower()
@@ -193,14 +194,14 @@ async def google_login(
     if not email or not email_verified:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Google account email is not verified",
+            detail=get_message("errors.auth.google_email_not_verified"),
         )
 
     domain = email.split("@")[-1] if "@" in email else ""
     if domain != "student.usv.ro":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Google sign-in is restricted to @student.usv.ro accounts",
+            detail=get_message("errors.auth.google_restricted_domain"),
         )
 
     try:
@@ -210,7 +211,7 @@ async def google_login(
     except Exception as exc:
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
-            detail="Failed to authenticate with Google",
+            detail=get_message("errors.auth.failed_to_authenticate_google"),
         ) from exc
 
     return _issue_access_token(

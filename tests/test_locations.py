@@ -3,6 +3,7 @@ from datetime import UTC, datetime
 from fastapi.testclient import TestClient
 
 from app.auth.dependencies import CurrentUser
+from app.localization import get_message
 from app.main import app
 from app.routers.locations import admin_only, get_locations_client
 
@@ -141,4 +142,4 @@ def test_delete_location_admin() -> None:
     response = client.delete("/api/v1/locations/loc-1")
 
     assert response.status_code == 200
-    assert response.json() == {"detail": "Location deleted"}
+    assert response.json() == {"detail": get_message("errors.lookups.location_deleted")}

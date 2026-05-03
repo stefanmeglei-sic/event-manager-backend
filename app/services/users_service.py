@@ -2,6 +2,7 @@ from fastapi import HTTPException, status
 from passlib.context import CryptContext
 from supabase import Client
 
+from app.localization import get_message
 from app.schemas.common import PaginatedResponse
 from app.schemas.user import UserCreate, UserRead, UserUpdate
 
@@ -50,7 +51,7 @@ def list_users(
     except Exception as exc:
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
-            detail="Failed to fetch users",
+            detail=get_message("errors.users.failed_to_fetch_users"),
         ) from exc
 
 
@@ -69,14 +70,14 @@ def create_user(client: Client, payload: UserCreate) -> UserRead:
         )
         rows = response.data or []
         if not rows:
-            raise HTTPException(status_code=500, detail="User was not created")
+            raise HTTPException(status_code=500, detail=get_message("errors.users.user_not_created"))
         return to_user_read(rows[0])
     except HTTPException:
         raise
     except Exception as exc:
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
-            detail="Failed to create user",
+            detail=get_message("errors.users.failed_to_create_user"),
         ) from exc
 
 
@@ -94,7 +95,7 @@ def get_user_by_id(client: Client, user_id: str) -> UserRead:
         if not rows:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail="User not found",
+                detail=get_message("errors.users.user_not_found"),
             )
         return to_user_read(rows[0])
     except HTTPException:
@@ -102,7 +103,7 @@ def get_user_by_id(client: Client, user_id: str) -> UserRead:
     except Exception as exc:
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
-            detail="Failed to fetch user",
+            detail=get_message("errors.users.failed_to_fetch_user"),
         ) from exc
 
 
@@ -113,7 +114,7 @@ def update_user_by_id(client: Client, user_id: str, payload: UserUpdate) -> User
     if not updates:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="No fields provided for update",
+            detail=get_message("errors.users.no_fields_for_update"),
         )
 
     try:
@@ -128,7 +129,7 @@ def update_user_by_id(client: Client, user_id: str, payload: UserUpdate) -> User
         if not rows:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail="User not found",
+                detail=get_message("errors.users.user_not_found"),
             )
         return to_user_read(rows[0])
     except HTTPException:
@@ -136,5 +137,5 @@ def update_user_by_id(client: Client, user_id: str, payload: UserUpdate) -> User
     except Exception as exc:
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
-            detail="Failed to update user",
+            detail=get_message("errors.users.failed_to_update_user"),
         ) from exc

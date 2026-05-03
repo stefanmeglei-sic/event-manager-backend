@@ -203,7 +203,8 @@ async def get_event_ics(
     event_rows = event_resp.data or []
     if not event_rows:
         from fastapi import HTTPException
-        raise HTTPException(status_code=404, detail="Event not found")
+        from app.localization import get_message
+        raise HTTPException(status_code=404, detail=get_message("errors.events.event_not_found"))
     ev = event_rows[0]
 
     # Fetch location name
@@ -235,7 +236,8 @@ async def get_event_ics(
     dtend = parse_dt(ev.get("end_date"))
     if dtstart is None:
         from fastapi import HTTPException
-        raise HTTPException(status_code=422, detail="Event has no start date")
+        from app.localization import get_message
+        raise HTTPException(status_code=422, detail=get_message("errors.events.event_has_no_start_date"))
     if dtend is None:
         dtend = dtstart + timedelta(hours=1)
 

@@ -3,6 +3,7 @@ from datetime import UTC, datetime
 from fastapi.testclient import TestClient
 
 from app.auth.dependencies import CurrentUser, get_current_user
+from app.localization import get_message
 from app.main import app
 from app.routers.events import admin_or_organizer, get_events_client
 
@@ -239,7 +240,7 @@ def test_get_event_not_found() -> None:
     response = client.get("/api/v1/events/does-not-exist")
 
     assert response.status_code == 404
-    assert response.json()["detail"] == "Event not found"
+    assert response.json()["detail"] == get_message("errors.events.event_not_found")
 
 
 def test_create_event() -> None:
@@ -285,7 +286,7 @@ def test_create_event_invalid_date_range() -> None:
     response = client.post("/api/v1/events", json=payload)
 
     assert response.status_code == 400
-    assert response.json()["detail"] == "end_date must be after start_date"
+    assert response.json()["detail"] == get_message("errors.events.invalid_end_date")
 
 
 def test_create_event_invalid_capacity() -> None:
@@ -313,7 +314,7 @@ def test_update_event_requires_payload_fields() -> None:
     response = client.patch("/api/v1/events/evt-1", json={})
 
     assert response.status_code == 400
-    assert response.json()["detail"] == "No fields provided for update"
+    assert response.json()["detail"] == get_message("errors.events.no_fields_for_update")
 
 
 def test_update_event_invalid_capacity() -> None:
@@ -326,7 +327,7 @@ def test_delete_event() -> None:
     response = client.delete("/api/v1/events/evt-1")
 
     assert response.status_code == 200
-    assert response.json()["detail"] == "Event deleted"
+    assert response.json()["detail"] == get_message("errors.events.event_deleted")
 
 
 def test_list_participants() -> None:

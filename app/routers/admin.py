@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from supabase import Client
 
 from app.auth.dependencies import CurrentUser, require_roles
+from app.localization import get_message
 from app.schemas.common import MessageResponse
 from app.schemas.lookup import LookupCreate, LookupRead, LookupUpdate, StatusCreate, StatusRead, StatusUpdate
 from app.services.lookups_service import (
@@ -92,12 +93,12 @@ async def create_status(
         response = client.table("statusuri").insert(payload.model_dump()).execute()
         rows = response.data or []
         if not rows:
-            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Status was not created")
+            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=get_message("errors.lookups.status_not_created"))
         return StatusRead(**rows[0])
     except HTTPException:
         raise
     except Exception as exc:
-        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail="Failed to create status") from exc
+        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=get_message("errors.lookups.failed_to_create_status")) from exc
 
 
 @router.patch("/statuses/{status_id}", response_model=StatusRead, summary="Update event status")
@@ -109,17 +110,17 @@ async def update_status(
 ) -> StatusRead:
     updates = {k: v for k, v in payload.model_dump().items() if v is not None}
     if not updates:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="No fields to update")
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=get_message("errors.lookups.no_fields_to_update"))
     try:
         response = client.table("statusuri").update(updates).eq("id", status_id).execute()
         rows = response.data or []
         if not rows:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Status not found")
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=get_message("errors.lookups.status_not_found"))
         return StatusRead(**rows[0])
     except HTTPException:
         raise
     except Exception as exc:
-        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail="Failed to update status") from exc
+        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=get_message("errors.lookups.failed_to_update_status")) from exc
 
 
 @router.delete("/statuses/{status_id}", response_model=MessageResponse, summary="Delete event status")

@@ -5,6 +5,7 @@ from fastapi import HTTPException, status
 from supabase import Client
 
 from app.auth.dependencies import CurrentUser
+from app.localization import get_message
 from app.schemas.registration import RegistrationCreate, RegistrationRead
 
 
@@ -20,7 +21,7 @@ def get_status_id(client: Client, status_name: str) -> str:
     if not rows:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Missing status: {status_name}",
+            detail=get_message("errors.registrations.missing_status", status_name=status_name),
         )
     return rows[0]["id"]
 
@@ -58,7 +59,7 @@ def register_to_event(
         if not event_rows:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail="Event not found",
+                detail=get_message("errors.registrations.event_not_found"),
             )
         event = event_rows[0]
 
@@ -66,7 +67,7 @@ def register_to_event(
         if current_user.role == "organizer" and event.get("organizer_id") == current_user.user_id:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="Organizers cannot register to their own events",
+                detail=get_message("errors.registrations.organizer_own_event"),
             )
 
         # Deadline check
@@ -82,7 +83,7 @@ def register_to_event(
             if datetime.now(UTC) > deadline_dt:
                 raise HTTPException(
                     status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                    detail="Registration deadline has passed",
+                    detail=get_message("errors.registrations.deadline_passed"),
                 )
 
         # Capacity check
@@ -100,7 +101,7 @@ def register_to_event(
             if current_count >= max_p:
                 raise HTTPException(
                     status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                    detail="Event is at full capacity",
+                    detail=get_message("errors.registrations.full_capacity"),
                 )
 
         existing = (
@@ -114,7 +115,7 @@ def register_to_event(
         if existing.data:
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
-                detail="User is already registered to this event",
+                detail=get_message("errors.registrations.already_registered"),
             )
 
         pending_status_id = get_status_id(client, "pending")
@@ -133,14 +134,14 @@ def register_to_event(
         )
         rows = response.data or []
         if not rows:
-            raise HTTPException(status_code=500, detail="Registration was not created")
+            raise HTTPException(status_code=500, detail=get_message("errors.registrations.registration_not_created"))
         return to_registration_read(rows[0])
     except HTTPException:
         raise
     except Exception as exc:
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
-            detail="Failed to register for event",
+            detail=get_message("errors.registrations.failed_to_register"),
         ) from exc
 
 
@@ -164,13 +165,13 @@ def cancel_registration(
         if not rows:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail="Registration not found",
+                detail=get_message("errors.registrations.registration_not_found"),
             )
         registration = rows[0]
         if current_user.role not in ("admin", "organizer") and registration["user_id"] != current_user.user_id:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="Insufficient permissions",
+                detail=get_message("errors.permissions.insufficient"),
             )
 
         cancelled_status_id = get_status_id(client, "cancelled")
@@ -185,7 +186,7 @@ def cancel_registration(
         if not updated_rows:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail="Registration not found",
+                detail=get_message("errors.registrations.registration_not_found"),
             )
 
         # B9: Waiting-list auto-promotion
@@ -238,7 +239,7 @@ def cancel_registration(
     except Exception as exc:
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
-            detail="Failed to cancel registration",
+            detail=get_message("errors.registrations.failed_to_cancel"),
         ) from exc
 
 
@@ -261,7 +262,7 @@ def confirm_registration(
         if not rows:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail="Registration not found",
+                detail=get_message("errors.registrations.registration_not_found"),
             )
         return to_registration_read(rows[0])
     except HTTPException:
@@ -269,7 +270,7 @@ def confirm_registration(
     except Exception as exc:
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
-            detail="Failed to confirm registration",
+            detail=get_message("errors.registrations.failed_to_confirm"),
         ) from exc
 
 
@@ -297,7 +298,7 @@ def check_in_registration(
         if not rows:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail="Registration not found",
+                detail=get_message("errors.registrations.registration_not_found"),
             )
         return to_registration_read(rows[0])
     except HTTPException:
@@ -305,5 +306,5 @@ def check_in_registration(
     except Exception as exc:
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
-            detail="Failed to check in registration",
+            detail=get_message("errors.registrations.failed_to_check_in"),
         ) from exc

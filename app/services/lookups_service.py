@@ -3,6 +3,7 @@ from datetime import UTC, datetime
 from fastapi import HTTPException, status
 from supabase import Client
 
+from app.localization import get_message
 from app.schemas.common import MessageResponse
 from app.schemas.lookup import LocationCreate, LocationRead, LocationUpdate, LookupRead
 
@@ -21,7 +22,7 @@ def read_lookup_table(
     except Exception as exc:
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
-            detail="Failed to fetch lookup data",
+            detail=get_message("errors.lookups.failed_to_fetch_lookup_data"),
         ) from exc
 
 
@@ -47,7 +48,7 @@ def read_locations(client: Client) -> list[LocationRead]:
     except Exception as exc:
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
-            detail="Failed to fetch lookup data",
+            detail=get_message("errors.lookups.failed_to_fetch_lookup_data"),
         ) from exc
 
 
@@ -55,13 +56,13 @@ def create_location(client: Client, payload: LocationCreate) -> LocationRead:
     if payload.capacitate is not None and payload.capacitate <= 0:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="capacitate must be greater than 0",
+            detail=get_message("errors.lookups.invalid_capacity"),
         )
     try:
         response = client.table("locatii").insert(payload.model_dump(mode="json")).execute()
         rows = response.data or []
         if not rows:
-            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Location was not created")
+            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=get_message("errors.lookups.location_not_created"))
         row = rows[0]
         return LocationRead(
             id=row["id"],
@@ -74,7 +75,7 @@ def create_location(client: Client, payload: LocationCreate) -> LocationRead:
     except Exception as exc:
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
-            detail="Failed to create location",
+            detail=get_message("errors.lookups.failed_to_create_location"),
         ) from exc
 
 
@@ -83,12 +84,12 @@ def update_location_by_id(client: Client, location_id: str, payload: LocationUpd
     if not updates:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="No fields provided for update",
+            detail=get_message("errors.lookups.no_fields_for_update"),
         )
     if payload.capacitate is not None and payload.capacitate <= 0:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="capacitate must be greater than 0",
+            detail=get_message("errors.lookups.invalid_capacity"),
         )
     try:
         response = (
@@ -100,7 +101,7 @@ def update_location_by_id(client: Client, location_id: str, payload: LocationUpd
         )
         rows = response.data or []
         if not rows:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Location not found")
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=get_message("errors.lookups.location_not_found"))
         row = rows[0]
         return LocationRead(
             id=row["id"],
@@ -113,7 +114,7 @@ def update_location_by_id(client: Client, location_id: str, payload: LocationUpd
     except Exception as exc:
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
-            detail="Failed to update location",
+            detail=get_message("errors.lookups.failed_to_update_location"),
         ) from exc
 
 
@@ -128,14 +129,14 @@ def delete_location_by_id(client: Client, location_id: str) -> MessageResponse:
         )
         rows = response.data or []
         if not rows:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Location not found")
-        return MessageResponse(detail="Location deleted")
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=get_message("errors.lookups.location_not_found"))
+        return MessageResponse(detail=get_message("errors.lookups.location_deleted"))
     except HTTPException:
         raise
     except Exception as exc:
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
-            detail="Failed to delete location",
+            detail=get_message("errors.lookups.failed_to_delete_location"),
         ) from exc
 
 
@@ -144,33 +145,33 @@ def create_lookup_entry(client: Client, table: str, payload: dict) -> LookupRead
         response = client.table(table).insert(payload).execute()
         rows = response.data or []
         if not rows:
-            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Entry was not created")
+            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=get_message("errors.lookups.entry_not_created"))
         return LookupRead(**rows[0])
     except HTTPException:
         raise
     except Exception as exc:
-        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail="Failed to create entry") from exc
+        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=get_message("errors.lookups.failed_to_create_entry")) from exc
 
 
 def update_lookup_entry(client: Client, table: str, entry_id: str, payload: dict) -> LookupRead:
     updates = {k: v for k, v in payload.items() if v is not None}
     if not updates:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="No fields to update")
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=get_message("errors.lookups.no_fields_to_update"))
     try:
         response = client.table(table).update(updates).eq("id", entry_id).execute()
         rows = response.data or []
         if not rows:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Entry not found")
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=get_message("errors.lookups.entry_not_found"))
         return LookupRead(**rows[0])
     except HTTPException:
         raise
     except Exception as exc:
-        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail="Failed to update entry") from exc
+        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=get_message("errors.lookups.failed_to_update_entry")) from exc
 
 
 def delete_lookup_entry(client: Client, table: str, entry_id: str) -> MessageResponse:
     try:
         client.table(table).delete().eq("id", entry_id).execute()
-        return MessageResponse(detail="Deleted successfully")
+        return MessageResponse(detail=get_message("errors.lookups.deleted_successfully"))
     except Exception as exc:
-        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail="Failed to delete entry") from exc
+        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=get_message("errors.lookups.failed_to_delete_entry")) from exc

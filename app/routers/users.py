@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from supabase import Client
 
 from app.auth.dependencies import CurrentUser, get_current_user, require_roles
+from app.localization import get_message
 from app.schemas.common import PaginatedResponse
 from app.schemas.user import UserCreate, UserRead, UserUpdate
 from app.services.users_service import (
@@ -90,7 +91,7 @@ async def get_my_registrations(
         from fastapi import HTTPException, status as http_status
         raise HTTPException(
             status_code=http_status.HTTP_502_BAD_GATEWAY,
-            detail="Failed to fetch registrations",
+            detail=get_message("errors.users.failed_to_fetch_registrations"),
         ) from exc
 
 
@@ -103,7 +104,7 @@ async def get_user(
     if current_user.role != "admin" and current_user.user_id != user_id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Insufficient permissions",
+            detail=get_message("errors.permissions.insufficient"),
         )
     return get_user_by_id(client, user_id)
 

@@ -5,6 +5,7 @@ from fastapi.responses import StreamingResponse
 from supabase import Client
 
 from app.auth.dependencies import CurrentUser, get_current_user, require_roles
+from app.localization import get_message
 from app.schemas.registration import RegistrationCreate, RegistrationRead
 from app.services.registrations_service import (
     cancel_registration as cancel_registration_service,
@@ -112,13 +113,13 @@ async def get_registration_qr(
     rows = resp.data or []
     if not rows:
         from fastapi import HTTPException, status as http_status
-        raise HTTPException(status_code=http_status.HTTP_404_NOT_FOUND, detail="Registration not found")
+        raise HTTPException(status_code=http_status.HTTP_404_NOT_FOUND, detail=get_message("errors.registrations.registration_not_found"))
 
     reg = rows[0]
     # Ownership check
     if current_user.role not in ("admin", "organizer") and reg["user_id"] != current_user.user_id:
         from fastapi import HTTPException, status as http_status
-        raise HTTPException(status_code=http_status.HTTP_403_FORBIDDEN, detail="Insufficient permissions")
+        raise HTTPException(status_code=http_status.HTTP_403_FORBIDDEN, detail=get_message("errors.permissions.insufficient"))
 
     token = reg.get("qr_token") or registration_id  # fallback to id if token missing
 

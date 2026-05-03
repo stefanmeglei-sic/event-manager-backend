@@ -1,6 +1,7 @@
 from fastapi.testclient import TestClient
 
 from app.auth.dependencies import CurrentUser, get_current_user
+from app.localization import get_message
 from app.main import app
 from app.routers.users import admin_only, get_users_client
 
@@ -223,14 +224,14 @@ def test_get_user_denies_other_non_admin() -> None:
     response = client.get("/api/v1/users/user-1")
 
     assert response.status_code == 403
-    assert response.json()["detail"] == "Insufficient permissions"
+    assert response.json()["detail"] == get_message("errors.permissions.insufficient")
 
 
 def test_update_user_requires_payload_fields() -> None:
     response = client.patch("/api/v1/users/user-1", json={})
 
     assert response.status_code == 400
-    assert response.json()["detail"] == "No fields provided for update"
+    assert response.json()["detail"] == get_message("errors.users.no_fields_for_update")
 
 
 def test_update_user() -> None:
@@ -247,4 +248,4 @@ def test_get_user_not_found() -> None:
     response = client.get("/api/v1/users/does-not-exist")
 
     assert response.status_code == 404
-    assert response.json()["detail"] == "User not found"
+    assert response.json()["detail"] == get_message("errors.users.user_not_found")

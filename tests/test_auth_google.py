@@ -1,6 +1,7 @@
 from fastapi.testclient import TestClient
 
 from app.config import Settings
+from app.localization import get_message
 from app.main import app
 from app.routers.auth import (
     get_auth_client,
@@ -148,7 +149,7 @@ def test_google_login_rejects_forbidden_domain() -> None:
     )
 
     assert response.status_code == 403
-    assert response.json()["detail"] == "Google sign-in is restricted to @student.usv.ro accounts"
+    assert response.json()["detail"] == get_message("errors.auth.google_restricted_domain")
 
 
 def test_google_login_for_existing_user_returns_token() -> None:
