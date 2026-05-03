@@ -256,6 +256,9 @@
       "failed_to_fetch_user": "Nu s-a putut prelua utilizatorul",
       "no_fields_for_update": "Nu au fost furnizate campuri pentru actualizare",
       "failed_to_update_user": "Nu s-a putut actualiza utilizatorul",
+      "user_deleted": "Utilizatorul a fost blocat",
+      "failed_to_delete_user": "Nu s-a putut bloca utilizatorul",
+      "cannot_delete_self": "Nu iti poti bloca propriul cont",
       "failed_to_fetch_registrations": "Nu s-au putut prelua inscrierile"
     },
     "events": {

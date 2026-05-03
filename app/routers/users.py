@@ -3,10 +3,11 @@ from supabase import Client
 
 from app.auth.dependencies import CurrentUser, get_current_user, require_roles
 from app.localization import get_message
-from app.schemas.common import PaginatedResponse
+from app.schemas.common import MessageResponse, PaginatedResponse
 from app.schemas.user import UserCreate, UserRead, UserUpdate
 from app.services.users_service import (
     create_user as create_user_service,
+    delete_user_by_id,
     get_user_by_id,
     list_users as list_users_service,
     update_user_by_id,
@@ -117,3 +118,17 @@ async def update_user(
     client: Client = Depends(get_users_client),
 ) -> UserRead:
     return update_user_by_id(client, user_id, payload)
+
+
+@router.delete("/{user_id}", response_model=MessageResponse)
+async def delete_user(
+    user_id: str,
+    current_user: CurrentUser = Depends(admin_only),
+    client: Client = Depends(get_users_client),
+) -> MessageResponse:
+    if current_user.user_id == user_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=get_message("errors.users.cannot_delete_self"),
+        )
+    return delete_user_by_id(client, user_id)

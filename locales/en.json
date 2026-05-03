@@ -256,6 +256,9 @@
       "failed_to_fetch_user": "Failed to fetch user",
       "no_fields_for_update": "No fields provided for update",
       "failed_to_update_user": "Failed to update user",
+      "user_deleted": "User has been banned",
+      "failed_to_delete_user": "Failed to ban user",
+      "cannot_delete_self": "You cannot ban your own account",
       "failed_to_fetch_registrations": "Failed to fetch registrations"
     },
     "events": {

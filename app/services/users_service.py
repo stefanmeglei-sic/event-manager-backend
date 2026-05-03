@@ -1,9 +1,11 @@
+from datetime import UTC, datetime
+
 from fastapi import HTTPException, status
 from passlib.context import CryptContext
 from supabase import Client
 
 from app.localization import get_message
-from app.schemas.common import PaginatedResponse
+from app.schemas.common import MessageResponse, PaginatedResponse
 from app.schemas.user import UserCreate, UserRead, UserUpdate
 
 
@@ -140,4 +142,29 @@ def update_user_by_id(client: Client, user_id: str, payload: UserUpdate) -> User
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
             detail=get_message("errors.users.failed_to_update_user"),
+        ) from exc
+
+
+def delete_user_by_id(client: Client, user_id: str) -> MessageResponse:
+    try:
+        response = (
+            client.table("utilizatori")
+            .update({"deleted_at": datetime.now(UTC).isoformat()})
+            .eq("id", user_id)
+            .is_("deleted_at", None)
+            .execute()
+        )
+        rows = response.data or []
+        if not rows:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=get_message("errors.users.user_not_found"),
+            )
+        return MessageResponse(detail=get_message("errors.users.user_deleted"))
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail=get_message("errors.users.failed_to_delete_user"),
         ) from exc
