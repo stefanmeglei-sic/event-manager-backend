@@ -69,6 +69,11 @@ def list_events(
     status_id: str | None,
     categorie_id: str | None,
     organizer_id: str | None = None,
+    location_id: str | None = None,
+    tip_participare_id: str | None = None,
+    date_from: str | None = None,
+    date_to: str | None = None,
+    requires_registration: bool | None = None,
     search: str | None = None,
     limit: int,
     cursor_created_at: str | None,
@@ -82,6 +87,16 @@ def list_events(
             query = query.eq("categorie_id", categorie_id)
         if organizer_id:
             query = query.eq("organizer_id", organizer_id)
+        if location_id:
+            query = query.eq("locatie_id", location_id)
+        if tip_participare_id:
+            query = query.eq("tip_participare_id", tip_participare_id)
+        if date_from:
+            query = query.gte("start_date", date_from)
+        if date_to:
+            query = query.lte("start_date", date_to)
+        if requires_registration is True:
+            query = query.not_.is_("max_participanti", None)
         if search:
             query = query.ilike("titlu", f"%{search}%")
         if cursor_created_at and cursor_id:
