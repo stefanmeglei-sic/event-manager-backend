@@ -15,10 +15,18 @@ def _base_event_select(client: Client):
         .select(
             "id,titlu,descriere,start_date,end_date,locatie_id,categorie_id,status_id,"
             "organizer_id,tip_participare_id,max_participanti,deadline_inscriere,"
-            "link_inscriere,created_at,deleted_at"
+            "link_inscriere,created_at,deleted_at,"
+            "utilizatori!organizer_id(email)"
         )
         .is_("deleted_at", None)
     )
+
+
+def _row_to_event_read(row: dict) -> EventRead:
+    organizer = row.get("utilizatori") or {}
+    fields = {k: v for k, v in row.items() if k != "utilizatori"}
+    fields["organizer_name"] = organizer.get("email")
+    return EventRead(**fields)
 
 
 def _validate_event_create(payload: EventCreate) -> None:
@@ -106,7 +114,7 @@ def list_events(
                 f"and(created_at.eq.{cursor_created_at},id.gt.{cursor_id})"
             )
         response = query.order("created_at").order("id").limit(limit).execute()
-        items = [EventRead(**row) for row in (response.data or [])]
+        items = [_row_to_event_read(row) for row in (response.data or [])]
         next_cursor: str | None = None
         if len(items) == limit:
             last = items[-1]
@@ -132,7 +140,7 @@ def create_event(client: Client, payload: EventCreate) -> EventRead:
         rows = response.data or []
         if not rows:
             raise HTTPException(status_code=500, detail=get_message("errors.events.event_not_created"))
-        return EventRead(**rows[0])
+        return get_event_by_id(client, rows[0]["id"])
     except HTTPException:
         raise
     except Exception as exc:
@@ -151,7 +159,7 @@ def get_event_by_id(client: Client, event_id: str) -> EventRead:
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail=get_message("errors.events.event_not_found"),
             )
-        return EventRead(**rows[0])
+        return _row_to_event_read(rows[0])
     except HTTPException:
         raise
     except Exception as exc:
@@ -190,7 +198,7 @@ def update_event_by_id(client: Client, event_id: str, payload: EventUpdate, *, c
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail=get_message("errors.events.event_not_found"),
             )
-        return EventRead(**rows[0])
+        return get_event_by_id(client, rows[0]["id"])
     except HTTPException:
         raise
     except Exception as exc:

@@ -43,6 +43,7 @@ class EventRead(BaseModel):
     categorie_id: str
     status_id: str
     organizer_id: str
+    organizer_name: str | None = None
     tip_participare_id: str
     max_participanti: int | None = None
     deadline_inscriere: datetime | None = None
