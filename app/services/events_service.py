@@ -16,7 +16,7 @@ def _base_event_select(client: Client):
             "id,titlu,descriere,start_date,end_date,locatie_id,categorie_id,status_id,"
             "organizer_id,tip_participare_id,max_participanti,deadline_inscriere,"
             "link_inscriere,created_at,deleted_at,"
-            "utilizatori!organizer_id(email)"
+            "utilizatori!organizer_id(nume,email)"
         )
         .is_("deleted_at", None)
     )
@@ -25,7 +25,7 @@ def _base_event_select(client: Client):
 def _row_to_event_read(row: dict) -> EventRead:
     organizer = row.get("utilizatori") or {}
     fields = {k: v for k, v in row.items() if k != "utilizatori"}
-    fields["organizer_name"] = organizer.get("email")
+    fields["organizer_name"] = organizer.get("nume") or organizer.get("email")
     return EventRead(**fields)
 
 
@@ -289,7 +289,7 @@ def validate_event(client: Client, event_id: str, approved: bool) -> EventRead:
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail=get_message("errors.events.event_not_found"),
             )
-        return EventRead(**updated[0])
+        return get_event_by_id(client, updated[0]["id"])
     except HTTPException:
         raise
     except Exception as exc:

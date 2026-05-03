@@ -14,6 +14,7 @@ def to_user_read(row: dict) -> UserRead:
     return UserRead(
         id=row["id"],
         email=row["email"],
+        nume=row.get("nume"),
         rol_id=row["rol_id"],
         created_at=row.get("created_at"),
     )
@@ -29,7 +30,7 @@ def list_users(
     try:
         query = (
             client.table("utilizatori")
-            .select("id,email,rol_id,created_at,deleted_at")
+            .select("id,email,nume,rol_id,created_at,deleted_at")
             .is_("deleted_at", None)
         )
 
@@ -62,6 +63,7 @@ def create_user(client: Client, payload: UserCreate) -> UserRead:
             .insert(
                 {
                     "email": payload.email,
+                    "nume": payload.nume,
                     "password_hash": pwd_context.hash(payload.password),
                     "rol_id": payload.rol_id,
                 }
@@ -85,7 +87,7 @@ def get_user_by_id(client: Client, user_id: str) -> UserRead:
     try:
         response = (
             client.table("utilizatori")
-            .select("id,email,rol_id,created_at,deleted_at")
+            .select("id,email,nume,rol_id,created_at,deleted_at")
             .eq("id", user_id)
             .is_("deleted_at", None)
             .limit(1)

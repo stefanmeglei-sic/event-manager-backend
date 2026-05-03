@@ -16,6 +16,7 @@ class CurrentUser:
     user_id: str
     role: str
     email: str | None = None
+    nume: str | None = None
 
 
 def get_current_user(
@@ -44,6 +45,7 @@ def get_current_user(
     user_id = payload.get("sub")
     role = payload.get("role")
     email = payload.get("email")
+    nume = payload.get("nume")
 
     if not user_id or not role:
         raise HTTPException(
@@ -51,7 +53,7 @@ def get_current_user(
             detail=get_message("errors.auth.token_payload_missing_claims"),
         )
 
-    return CurrentUser(user_id=user_id, role=role, email=email)
+    return CurrentUser(user_id=user_id, role=role, email=email, nume=nume)
 
 
 def require_roles(*allowed_roles: str):

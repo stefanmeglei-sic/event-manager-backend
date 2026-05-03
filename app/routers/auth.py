@@ -50,6 +50,7 @@ def _issue_access_token(
     user_id: str,
     role: str,
     email: str,
+    nume: str | None = None,
 ) -> TokenResponse:
     expires_at = datetime.now(UTC) + timedelta(minutes=settings.jwt_expires_minutes)
     token = jwt.encode(
@@ -57,6 +58,7 @@ def _issue_access_token(
             "sub": user_id,
             "role": role,
             "email": email,
+            "nume": nume,
             "exp": expires_at,
         },
         settings.jwt_secret_key,
@@ -131,7 +133,7 @@ async def login(
     try:
         response = (
             client.table("utilizatori")
-            .select("id,email,password_hash,rol_id")
+            .select("id,email,nume,password_hash,rol_id")
             .eq("email", payload.email)
             .is_("deleted_at", None)
             .limit(1)
@@ -164,6 +166,7 @@ async def login(
         user_id=user["id"],
         role=role,
         email=user["email"],
+        nume=user.get("nume"),
     )
 
 
@@ -228,4 +231,5 @@ async def me(current_user: CurrentUser = Depends(get_current_user)) -> dict[str,
         "id": current_user.user_id,
         "role": current_user.role,
         "email": current_user.email,
+        "nume": current_user.nume,
     }

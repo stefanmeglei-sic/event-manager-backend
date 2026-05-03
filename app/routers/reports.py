@@ -21,7 +21,7 @@ async def get_summary(
     # Total events (not deleted)
     events_resp = (
         client.table("evenimente")
-        .select("id,organizer_id", count="exact")
+        .select("id,organizer_id,utilizatori!organizer_id(nume,email)", count="exact")
         .is_("deleted_at", None)
         .execute()
     )
@@ -40,9 +40,15 @@ async def get_summary(
 
     # Top organizers
     from collections import Counter
+    organizer_info: dict[str, str] = {}
+    for e in events_data:
+        oid = e["organizer_id"]
+        if oid not in organizer_info:
+            user = e.get("utilizatori") or {}
+            organizer_info[oid] = user.get("nume") or user.get("email") or oid
     organizer_counts = Counter(e["organizer_id"] for e in events_data)
     top_organizers = [
-        {"organizer_id": oid, "event_count": cnt}
+        {"organizer_id": oid, "organizer_name": organizer_info.get(oid, oid), "event_count": cnt}
         for oid, cnt in organizer_counts.most_common(5)
     ]
 
