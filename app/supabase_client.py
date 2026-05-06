@@ -18,8 +18,11 @@ from app.config import get_settings
 @lru_cache(maxsize=1)
 def get_supabase_client() -> Client:
     settings = get_settings()
-    if not settings.supabase_url or not settings.supabase_key:
+    supabase_key = settings.supabase_admin_key
+
+    if not settings.supabase_url or not supabase_key:
         raise RuntimeError(
-            "SUPABASE_URL and SUPABASE_KEY must be set in the environment."
+            "SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY (or SUPABASE_SERVICE_KEY) "
+            "must be set in the environment."
         )
-    return create_client(settings.supabase_url, settings.supabase_key)
+    return create_client(settings.supabase_url, supabase_key)

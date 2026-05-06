@@ -16,7 +16,17 @@ class Settings(BaseSettings):
     database_url: str = "postgresql+asyncpg://postgres:postgres@localhost:5432/event_manager"
 
     supabase_url: str = ""
-    supabase_key: str = ""  # publishable anon/service key used by supabase-py
+    supabase_service_role_key: str = ""
+    supabase_service_key: str = ""  # backward-compat alias for SUPABASE_SERVICE_KEY
+    supabase_key: str = ""  # deprecated fallback, keep for compatibility
+
+    @property
+    def supabase_admin_key(self) -> str:
+        return (
+            self.supabase_service_role_key
+            or self.supabase_service_key
+            or self.supabase_key
+        )
 
     jwt_secret_key: str = "change-this-in-production"
     jwt_algorithm: str = "HS256"
