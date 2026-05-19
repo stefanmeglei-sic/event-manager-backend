@@ -12,6 +12,7 @@ class Settings(BaseSettings):
 
     api_prefix: str = "/api/v1"
     cors_origins: str = "http://localhost:3000,http://127.0.0.1:3000"
+    frontend_public_url: str = "http://localhost:3000"
 
     database_url: str = "postgresql+asyncpg://postgres:postgres@localhost:5432/event_manager"
 

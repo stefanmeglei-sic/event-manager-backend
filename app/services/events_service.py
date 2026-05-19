@@ -1,4 +1,6 @@
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
+import re
+import unicodedata
 
 from fastapi import HTTPException, status
 from supabase import Client
@@ -7,6 +9,43 @@ from app.localization import get_message
 from app.schemas.common import MessageResponse, PaginatedResponse
 from app.schemas.event import EventCreate, EventRead, EventUpdate
 from app.schemas.registration import RegistrationRead
+
+
+def _normalize_slug_part(value: str) -> str:
+    normalized = (
+        unicodedata.normalize("NFD", value.lower())
+        .encode("ascii", "ignore")
+        .decode("ascii")
+    )
+    normalized = re.sub(r"[^a-z0-9]+", "-", normalized)
+    normalized = re.sub(r"-{2,}", "-", normalized).strip("-")
+    return normalized
+
+
+def _event_slug_parts(event: EventRead) -> tuple[str, str, str]:
+    title = _normalize_slug_part(event.titlu) or "event"
+    organizer = _normalize_slug_part(event.organizer_name or event.organizer_id or "organizer") or "organizer"
+    start_date = event.start_date.date().isoformat() if event.start_date else "date"
+    return title, organizer, start_date
+
+
+def event_slug_from_event(event: EventRead) -> str:
+    title, organizer, start_date = _event_slug_parts(event)
+    return f"{title}--{organizer}--{start_date}"
+
+
+def event_legacy_slug_from_event(event: EventRead) -> str:
+    title, _, _ = _event_slug_parts(event)
+    return title
+
+
+def _extract_slug_date(slug: str) -> str | None:
+    match = re.search(r"(\d{4}-\d{2}-\d{2})$", slug)
+    return match.group(1) if match else None
+
+
+def _looks_like_uuid(value: str) -> bool:
+    return bool(re.fullmatch(r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}", value.lower()))
 
 
 def _base_event_select(client: Client):
@@ -160,6 +199,42 @@ def get_event_by_id(client: Client, event_id: str) -> EventRead:
                 detail=get_message("errors.events.event_not_found"),
             )
         return _row_to_event_read(rows[0])
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail=get_message("errors.events.failed_to_fetch_event"),
+        ) from exc
+
+
+def get_event_by_slug(client: Client, slug: str) -> EventRead:
+    normalized_slug = slug.strip().lower()
+
+    if _looks_like_uuid(normalized_slug):
+        return get_event_by_id(client, normalized_slug)
+
+    try:
+        query = _base_event_select(client)
+        slug_date = _extract_slug_date(normalized_slug)
+        if slug_date:
+            day_start = f"{slug_date}T00:00:00+00:00"
+            next_day = (datetime.fromisoformat(slug_date) + timedelta(days=1)).date().isoformat()
+            day_end = f"{next_day}T00:00:00+00:00"
+            query = query.gte("start_date", day_start).lt("start_date", day_end)
+
+        rows = query.order("created_at").limit(500).execute().data or []
+        for row in rows:
+            event = _row_to_event_read(row)
+            if event_slug_from_event(event) == normalized_slug:
+                return event
+            if event_legacy_slug_from_event(event) == normalized_slug:
+                return event
+
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=get_message("errors.events.event_not_found"),
+        )
     except HTTPException:
         raise
     except Exception as exc:

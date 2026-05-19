@@ -5,13 +5,16 @@ from fastapi.responses import StreamingResponse
 from supabase import Client
 
 from app.auth.dependencies import CurrentUser, get_current_user, require_roles
+from app.config import get_settings
 from app.schemas.common import MessageResponse, PaginatedResponse
 from app.schemas.event import EventCreate, EventRead, EventUpdate, EventValidate
 from app.schemas.registration import RegistrationRead
 from app.services.events_service import (
     create_event as create_event_service,
     delete_event_by_id,
+    event_slug_from_event,
     get_event_by_id,
+    get_event_by_slug,
     list_event_participants,
     list_events as list_events_service,
     update_event_by_id,
@@ -90,6 +93,14 @@ async def create_event(
     return create_event_service(client, payload)
 
 
+@router.get("/by-slug/{slug}", response_model=EventRead, summary="Get event by slug")
+async def get_event_from_slug(
+    slug: str,
+    client: Client = Depends(get_events_client),
+) -> EventRead:
+    return get_event_by_slug(client, slug)
+
+
 @router.get("/{event_id}", response_model=EventRead, summary="Get event by id")
 async def get_event(
     event_id: str,
@@ -154,9 +165,12 @@ async def get_event_qr(
 ) -> StreamingResponse:
     import qrcode  # local import to avoid startup failure if not installed
 
-    get_event_by_id(client, event_id)  # 404 if not found
+    event = get_event_by_id(client, event_id)  # 404 if not found
+    settings = get_settings()
+    event_slug = event_slug_from_event(event)
+    base_url = (settings.frontend_public_url or "http://localhost:3000").rstrip("/")
 
-    url = f"http://localhost:3000/events/{event_id}"
+    url = f"{base_url}/events/{event_slug}"
     img = qrcode.make(url)
 
     buf = io.BytesIO()
