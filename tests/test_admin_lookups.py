@@ -29,6 +29,11 @@ class FakeAdminQuery:
         self._rows = [row for row in self._rows if row.get(column) == value]
         return self
 
+    def is_(self, column: str, value: str | None):
+        if value in (None, "null"):
+            self._rows = [row for row in self._rows if row.get(column) is None]
+        return self
+
     def insert(self, payload: dict):
         self._pending_insert = dict(payload)
         return self
@@ -39,6 +44,9 @@ class FakeAdminQuery:
 
     def delete(self):
         self._pending_delete = True
+        return self
+
+    def limit(self, _amount: int):
         return self
 
     def execute(self):
@@ -67,9 +75,8 @@ class FakeAdminQuery:
 class FakeSupabase:
     def __init__(self):
         self.data: dict[str, list[dict]] = {
-            "categorii_eveniment": [{"id": "cat-1", "nume": "Workshop"}],
-            "tip_participare": [{"id": "tp-1", "nume": "Hybrid"}],
-            "statusuri": [{"id": "st-1", "nume": "draft", "tip": "event"}],
+            "categorii_eveniment": [{"id": "cat-1", "nume": "Workshop", "deleted_at": None}],
+            "tip_participare": [{"id": "tp-1", "nume": "Hybrid", "deleted_at": None}],
         }
 
     def table(self, table_name: str):
@@ -77,10 +84,11 @@ class FakeSupabase:
 
 
 client = TestClient(app)
+fake_client = FakeSupabase()
 
 
 def _override_client() -> FakeSupabase:
-    return FakeSupabase()
+    return fake_client
 
 
 def _override_admin() -> CurrentUser:
@@ -88,6 +96,8 @@ def _override_admin() -> CurrentUser:
 
 
 def setup_function() -> None:
+    global fake_client
+    fake_client = FakeSupabase()
     app.dependency_overrides[get_client] = _override_client
     app.dependency_overrides[admin_only] = _override_admin
 
@@ -128,6 +138,7 @@ def test_delete_category_admin() -> None:
 
     assert response.status_code == 200
     assert response.json()["detail"] == get_message("errors.lookups.deleted_successfully")
+    assert fake_client.data["categorii_eveniment"][0]["deleted_at"] is not None
 
 
 # ── Participation Types ───────────────────────────────────────────────────────
@@ -161,3 +172,4 @@ def test_delete_participation_type_admin() -> None:
 
     assert response.status_code == 200
     assert response.json()["detail"] == get_message("errors.lookups.deleted_successfully")
+    assert fake_client.data["tip_participare"][0]["deleted_at"] is not None

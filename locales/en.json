@@ -298,10 +298,7 @@
       "failed_to_update_entry": "Failed to update entry",
       "deleted_successfully": "Deleted successfully",
       "failed_to_delete_entry": "Failed to delete entry",
-      "status_not_created": "Status was not created",
-      "failed_to_create_status": "Failed to create status",
-      "status_not_found": "Status not found",
-      "failed_to_update_status": "Failed to update status"
+      "status_not_found": "Status not found"
     },
     "registrations": {
       "missing_status": "Missing status: {status_name}",

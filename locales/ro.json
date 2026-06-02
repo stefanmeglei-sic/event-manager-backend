@@ -298,10 +298,7 @@
       "failed_to_update_entry": "Nu s-a putut actualiza inregistrarea",
       "deleted_successfully": "Sters cu succes",
       "failed_to_delete_entry": "Nu s-a putut sterge inregistrarea",
-      "status_not_created": "Statusul nu a putut fi creat",
-      "failed_to_create_status": "Nu s-a putut crea statusul",
-      "status_not_found": "Statusul nu a fost gasit",
-      "failed_to_update_status": "Nu s-a putut actualiza statusul"
+      "status_not_found": "Statusul nu a fost gasit"
     },
     "registrations": {
       "missing_status": "Lipseste statusul: {status_name}",

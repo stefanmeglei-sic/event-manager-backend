@@ -38,7 +38,7 @@ async def get_registration_statuses(client: Client = Depends(get_lookup_client))
 
 @router.get("/event-categories", response_model=list[LookupRead], summary="List event categories")
 async def get_event_categories(client: Client = Depends(get_lookup_client)) -> list[LookupRead]:
-    return read_lookup_table(client, table="categorii_eveniment")
+    return read_lookup_table(client, table="categorii_eveniment", active_only=True)
 
 
 @router.get("/locations", response_model=list[LocationRead], summary="List locations")
@@ -48,4 +48,4 @@ async def get_locations(client: Client = Depends(get_lookup_client)) -> list[Loc
 
 @router.get("/participation-types", response_model=list[LookupRead], summary="List participation types")
 async def get_participation_types(client: Client = Depends(get_lookup_client)) -> list[LookupRead]:
-    return read_lookup_table(client, table="tip_participare")
+    return read_lookup_table(client, table="tip_participare", active_only=True)

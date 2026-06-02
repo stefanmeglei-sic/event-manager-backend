@@ -7,19 +7,40 @@ from app.localization import get_message
 from app.schemas.common import MessageResponse
 from app.schemas.lookup import LocationCreate, LocationRead, LocationUpdate, LookupRead
 
+
+def _is_missing_deleted_at_error(exc: Exception) -> bool:
+    return "deleted_at" in str(exc).lower() and "column" in str(exc).lower()
+
 def read_lookup_table(
     client: Client,
     *,
     table: str,
     names_filter: list[str] | None = None,
+    active_only: bool = False,
 ) -> list[LookupRead]:
     try:
         query = client.table(table).select("id,nume").order("nume")
         if names_filter:
             query = query.in_("nume", names_filter)
+        if active_only:
+            query = query.is_("deleted_at", "null")
         response = query.execute()
         return [LookupRead(**row) for row in (response.data or [])]
     except Exception as exc:
+        if active_only and _is_missing_deleted_at_error(exc):
+            # Backward-compatibility path for databases where the soft-delete
+            # migration has not been applied yet.
+            try:
+                query = client.table(table).select("id,nume").order("nume")
+                if names_filter:
+                    query = query.in_("nume", names_filter)
+                response = query.execute()
+                return [LookupRead(**row) for row in (response.data or [])]
+            except Exception as retry_exc:
+                raise HTTPException(
+                    status_code=status.HTTP_502_BAD_GATEWAY,
+                    detail=get_message("errors.lookups.failed_to_fetch_lookup_data"),
+                ) from retry_exc
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
             detail=get_message("errors.lookups.failed_to_fetch_lookup_data"),
@@ -153,12 +174,22 @@ def create_lookup_entry(client: Client, table: str, payload: dict) -> LookupRead
         raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=get_message("errors.lookups.failed_to_create_entry")) from exc
 
 
-def update_lookup_entry(client: Client, table: str, entry_id: str, payload: dict) -> LookupRead:
+def update_lookup_entry(
+    client: Client,
+    table: str,
+    entry_id: str,
+    payload: dict,
+    *,
+    active_only: bool = False,
+) -> LookupRead:
     updates = {k: v for k, v in payload.items() if v is not None}
     if not updates:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=get_message("errors.lookups.no_fields_to_update"))
     try:
-        response = client.table(table).update(updates).eq("id", entry_id).execute()
+        query = client.table(table).update(updates).eq("id", entry_id)
+        if active_only:
+            query = query.is_("deleted_at", "null")
+        response = query.execute()
         rows = response.data or []
         if not rows:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=get_message("errors.lookups.entry_not_found"))
@@ -169,9 +200,24 @@ def update_lookup_entry(client: Client, table: str, entry_id: str, payload: dict
         raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=get_message("errors.lookups.failed_to_update_entry")) from exc
 
 
-def delete_lookup_entry(client: Client, table: str, entry_id: str) -> MessageResponse:
+def delete_lookup_entry(
+    client: Client,
+    table: str,
+    entry_id: str,
+    *,
+    soft_delete: bool = False,
+) -> MessageResponse:
     try:
-        client.table(table).delete().eq("id", entry_id).execute()
+        query = client.table(table)
+        if soft_delete:
+            response = query.update({"deleted_at": datetime.now(UTC).isoformat()}).eq("id", entry_id).is_("deleted_at", "null").execute()
+            rows = response.data or []
+            if not rows:
+                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=get_message("errors.lookups.entry_not_found"))
+        else:
+            query.delete().eq("id", entry_id).execute()
         return MessageResponse(detail=get_message("errors.lookups.deleted_successfully"))
+    except HTTPException:
+        raise
     except Exception as exc:
         raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=get_message("errors.lookups.failed_to_delete_entry")) from exc

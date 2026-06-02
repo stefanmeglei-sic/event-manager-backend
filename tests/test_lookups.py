@@ -28,6 +28,11 @@ class FakeQuery:
             self._data = [row for row in self._data if row.get(column) is None]
         return self
 
+    def is_(self, column: str, value: str | None):
+        if value in (None, "null"):
+            self._data = [row for row in self._data if row.get(column) is None]
+        return self
+
     def execute(self):
         return FakeResponse(self._data)
 
@@ -48,8 +53,14 @@ class FakeSupabase:
                 {"id": "66", "nume": "cancelled"},
                 {"id": "77", "nume": "waiting"},
             ],
-            "categorii_eveniment": [{"id": "7", "nume": "workshop"}],
-            "tip_participare": [{"id": "8", "nume": "hybrid"}],
+            "categorii_eveniment": [
+                {"id": "7", "nume": "workshop", "deleted_at": None},
+                {"id": "70", "nume": "archived-category", "deleted_at": "2026-01-01T00:00:00Z"},
+            ],
+            "tip_participare": [
+                {"id": "8", "nume": "hybrid", "deleted_at": None},
+                {"id": "80", "nume": "archived-type", "deleted_at": "2026-01-01T00:00:00Z"},
+            ],
             "locatii": [
                 {
                     "id": "9",
@@ -136,6 +147,20 @@ def test_locations_lookup_ignores_soft_deleted_rows() -> None:
 
 
 def test_participation_types_lookup_returns_data() -> None:
+    response = client.get("/api/v1/lookups/participation-types")
+
+    assert response.status_code == 200
+    assert response.json() == [{"id": "8", "nume": "hybrid"}]
+
+
+def test_event_categories_lookup_ignores_soft_deleted_rows() -> None:
+    response = client.get("/api/v1/lookups/event-categories")
+
+    assert response.status_code == 200
+    assert response.json() == [{"id": "7", "nume": "workshop"}]
+
+
+def test_participation_types_lookup_ignores_soft_deleted_rows() -> None:
     response = client.get("/api/v1/lookups/participation-types")
 
     assert response.status_code == 200
