@@ -47,6 +47,8 @@ def register_to_event(
     current_user: CurrentUser,
 ) -> RegistrationRead:
     try:
+        registration_status_name = "pending"
+
         # Fetch event for deadline and capacity checks
         event_resp = (
             client.table("evenimente")
@@ -99,10 +101,7 @@ def register_to_event(
             )
             current_count = len(count_resp.data or [])
             if current_count >= max_p:
-                raise HTTPException(
-                    status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                    detail=get_message("errors.registrations.full_capacity"),
-                )
+                registration_status_name = "waiting"
 
         existing = (
             client.table("inscrieri")
@@ -118,7 +117,7 @@ def register_to_event(
                 detail=get_message("errors.registrations.already_registered"),
             )
 
-        pending_status_id = get_status_id(client, "pending")
+        registration_status_id = get_status_id(client, registration_status_name)
         response = (
             client.table("inscrieri")
             .insert(
@@ -126,7 +125,7 @@ def register_to_event(
                     "eveniment_id": event_id,
                     "user_id": current_user.user_id,
                     "tip_participare_id": payload.tip_participare_id,
-                    "status_id": pending_status_id,
+                    "status_id": registration_status_id,
                     "qr_token": str(uuid.uuid4()),
                 }
             )

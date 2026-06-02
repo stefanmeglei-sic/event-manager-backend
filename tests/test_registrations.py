@@ -73,6 +73,7 @@ class FakeSupabase:
                 {"id": "st-pending", "nume": "pending"},
                 {"id": "st-cancelled", "nume": "cancelled"},
                 {"id": "st-confirmed", "nume": "confirmed"},
+                {"id": "st-waiting", "nume": "waiting"},
                 {"id": "st-checked", "nume": "checked_in"},
             ],
             "eventi": [],
@@ -236,8 +237,8 @@ def test_register_to_event_at_full_capacity() -> None:
         json={"tip_participare_id": "tp-1"},
     )
 
-    assert response.status_code == 422
-    assert response.json()["detail"] == get_message("errors.registrations.full_capacity")
+    assert response.status_code == 201
+    assert response.json()["status_id"] == "st-waiting"
 
 
 def test_register_to_event_blocks_organizer_for_own_event() -> None:
