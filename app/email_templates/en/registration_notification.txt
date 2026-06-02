@@ -1,0 +1,5 @@
+Hello,
+
+$message
+
+View the event details: $event_url

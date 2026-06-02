@@ -300,6 +300,12 @@
       "failed_to_delete_entry": "Failed to delete entry",
       "status_not_found": "Status not found"
     },
+    "notifications": {
+      "failed_to_fetch": "Failed to fetch notifications",
+      "not_created": "Notification was not created",
+      "failed_to_create": "Failed to create notification",
+      "failed_to_mark_read": "Failed to mark notifications as read"
+    },
     "registrations": {
       "missing_status": "Missing status: {status_name}",
       "event_not_found": "Event not found",
@@ -319,5 +325,15 @@
       "registration_required": "You must have a confirmed registration to submit feedback",
       "feedback_not_created": "Feedback was not created"
     }
+  },
+  "notifications": {
+    "email_subject": "Event Manager notification",
+    "registration_subject": "Registration update for '{event_title}'",
+    "marked_all_read": "All notifications were marked as read",
+    "registration_pending": "You registered for '{event_title}'. Your request is pending confirmation.",
+    "registration_waiting": "You registered for '{event_title}' and were added to the waiting list.",
+    "registration_cancelled": "Your registration for '{event_title}' was cancelled.",
+    "registration_confirmed": "Your registration for '{event_title}' was confirmed.",
+    "registration_checked_in": "You were checked in for '{event_title}'."
   }
 }

@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 
 from app.config import get_settings
-from app.routers import admin, auth, events, feedback, locations, lookups, registrations, reports, users
+from app.routers import admin, auth, events, feedback, locations, lookups, notifications, registrations, reports, users
 
 
 def register_routers(app: FastAPI) -> None:
@@ -14,6 +14,7 @@ def register_routers(app: FastAPI) -> None:
     app.include_router(locations.router, prefix=prefix)
     app.include_router(events.router, prefix=prefix)
     app.include_router(registrations.router, prefix=prefix)
+    app.include_router(notifications.router, prefix=prefix)
     app.include_router(admin.router, prefix=prefix)
     app.include_router(reports.router, prefix=prefix)
     app.include_router(feedback.router, prefix=prefix)

@@ -300,6 +300,12 @@
       "failed_to_delete_entry": "Nu s-a putut sterge inregistrarea",
       "status_not_found": "Statusul nu a fost gasit"
     },
+    "notifications": {
+      "failed_to_fetch": "Nu s-au putut prelua notificarile",
+      "not_created": "Notificarea nu a putut fi creata",
+      "failed_to_create": "Nu s-a putut crea notificarea",
+      "failed_to_mark_read": "Nu s-au putut marca notificarile ca citite"
+    },
     "registrations": {
       "missing_status": "Lipseste statusul: {status_name}",
       "event_not_found": "Evenimentul nu a fost gasit",
@@ -319,5 +325,15 @@
       "registration_required": "Trebuie sa ai o inscriere confirmata pentru a trimite feedback",
       "feedback_not_created": "Feedback-ul nu a putut fi creat"
     }
+  },
+  "notifications": {
+    "email_subject": "Notificare Event Manager",
+    "registration_subject": "Actualizare inscriere pentru '{event_title}'",
+    "marked_all_read": "Toate notificarile au fost marcate ca citite",
+    "registration_pending": "Te-ai inscris la '{event_title}'. Cererea este in asteptarea confirmarii.",
+    "registration_waiting": "Te-ai inscris la '{event_title}' si ai fost adaugat pe lista de asteptare.",
+    "registration_cancelled": "Inscrierea ta la evenimentul '{event_title}' a fost anulata.",
+    "registration_confirmed": "Inscrierea ta la evenimentul '{event_title}' a fost confirmata.",
+    "registration_checked_in": "Ai fost inregistrat cu check-in la evenimentul '{event_title}'."
   }
 }

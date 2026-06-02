@@ -1,0 +1,5 @@
+Salut,
+
+$message
+
+Vezi detaliile evenimentului: $event_url

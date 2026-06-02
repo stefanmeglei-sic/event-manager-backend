@@ -6,7 +6,9 @@ from supabase import Client
 
 from app.auth.dependencies import CurrentUser
 from app.localization import get_message
+from app.schemas.notification import NotificationCreate
 from app.schemas.registration import RegistrationCreate, RegistrationRead
+from app.services.notifications_service import create_notification, event_email_context
 
 
 def get_status_id(client: Client, status_name: str) -> str:
@@ -52,7 +54,7 @@ def register_to_event(
         # Fetch event for deadline and capacity checks
         event_resp = (
             client.table("evenimente")
-            .select("organizer_id,max_participanti,deadline_inscriere")
+            .select("organizer_id,max_participanti,deadline_inscriere,titlu")
             .eq("id", event_id)
             .limit(1)
             .execute()
@@ -135,6 +137,30 @@ def register_to_event(
         rows = response.data or []
         if not rows:
             raise HTTPException(status_code=500, detail=get_message("errors.registrations.registration_not_created"))
+
+        try:
+            notification_context = event_email_context(client, event_id)
+            message_key = "notifications.registration_pending"
+            if registration_status_name == "waiting":
+                message_key = "notifications.registration_waiting"
+            create_notification(
+                client,
+                NotificationCreate(
+                    user_id=current_user.user_id,
+                    eveniment_id=event_id,
+                    mesaj=get_message(message_key, event_title=event.get("titlu") or notification_context["event_title"]),
+                ),
+                recipient_email=current_user.email,
+                email_template="registration_notification",
+                email_context=notification_context,
+                email_subject=get_message(
+                    "notifications.registration_subject",
+                    event_title=notification_context["event_title"],
+                ),
+            )
+        except Exception:
+            pass
+
         return to_registration_read(rows[0])
     except HTTPException:
         raise
@@ -233,6 +259,28 @@ def cancel_registration(
         except Exception:
             pass  # Auto-promotion is best-effort
 
+        try:
+            notification_context = event_email_context(client, event_id)
+            create_notification(
+                client,
+                NotificationCreate(
+                    user_id=registration["user_id"],
+                    eveniment_id=event_id,
+                    mesaj=get_message(
+                        "notifications.registration_cancelled",
+                        event_title=notification_context["event_title"],
+                    ),
+                ),
+                email_template="registration_notification",
+                email_context=notification_context,
+                email_subject=get_message(
+                    "notifications.registration_subject",
+                    event_title=notification_context["event_title"],
+                ),
+            )
+        except Exception:
+            pass
+
         return to_registration_read(updated_rows[0])
     except HTTPException:
         raise
@@ -264,6 +312,29 @@ def confirm_registration(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail=get_message("errors.registrations.registration_not_found"),
             )
+
+        try:
+            notification_context = event_email_context(client, event_id)
+            create_notification(
+                client,
+                NotificationCreate(
+                    user_id=rows[0]["user_id"],
+                    eveniment_id=event_id,
+                    mesaj=get_message(
+                        "notifications.registration_confirmed",
+                        event_title=notification_context["event_title"],
+                    ),
+                ),
+                email_template="registration_notification",
+                email_context=notification_context,
+                email_subject=get_message(
+                    "notifications.registration_subject",
+                    event_title=notification_context["event_title"],
+                ),
+            )
+        except Exception:
+            pass
+
         return to_registration_read(rows[0])
     except HTTPException:
         raise
@@ -300,6 +371,29 @@ def check_in_registration(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail=get_message("errors.registrations.registration_not_found"),
             )
+
+        try:
+            notification_context = event_email_context(client, event_id)
+            create_notification(
+                client,
+                NotificationCreate(
+                    user_id=rows[0]["user_id"],
+                    eveniment_id=event_id,
+                    mesaj=get_message(
+                        "notifications.registration_checked_in",
+                        event_title=notification_context["event_title"],
+                    ),
+                ),
+                email_template="registration_notification",
+                email_context=notification_context,
+                email_subject=get_message(
+                    "notifications.registration_subject",
+                    event_title=notification_context["event_title"],
+                ),
+            )
+        except Exception:
+            pass
+
         return to_registration_read(rows[0])
     except HTTPException:
         raise
