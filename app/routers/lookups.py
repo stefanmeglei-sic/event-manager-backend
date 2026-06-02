@@ -32,7 +32,7 @@ async def get_registration_statuses(client: Client = Depends(get_lookup_client))
     return read_lookup_table(
         client,
         table="statusuri",
-        names_filter=["pending", "confirmed", "checked_in"],
+        names_filter=["pending", "confirmed", "checked_in", "cancelled", "waiting"],
     )
 
 

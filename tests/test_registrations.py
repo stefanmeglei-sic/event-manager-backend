@@ -98,6 +98,16 @@ class FakeSupabase:
                     "qr_token": None,
                     "created_at": "2026-04-22T10:00:00+00:00",
                 },
+                {
+                    "id": "reg-cancelled-prev",
+                    "eveniment_id": "evt-2",
+                    "user_id": "user-1",
+                    "tip_participare_id": "tp-1",
+                    "status_id": "st-cancelled",
+                    "check_in_at": None,
+                    "qr_token": None,
+                    "created_at": "2026-04-21T10:00:00+00:00",
+                },
             ],
             "evenimente": [
                 {
@@ -185,6 +195,18 @@ def test_register_to_event_conflict_if_already_registered() -> None:
 
     assert response.status_code == 409
     assert response.json()["detail"] == get_message("errors.registrations.already_registered")
+
+
+def test_register_to_event_allows_reregister_after_cancelled() -> None:
+    app.dependency_overrides[get_current_user] = _override_user_1
+
+    response = client.post(
+        "/api/v1/events/evt-2/registrations",
+        json={"tip_participare_id": "tp-1"},
+    )
+
+    assert response.status_code == 201
+    assert response.json()["status_id"] == "st-pending"
 
 
 def test_cancel_registration_denies_non_owner_non_admin() -> None:

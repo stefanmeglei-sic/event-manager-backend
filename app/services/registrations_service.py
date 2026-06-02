@@ -108,6 +108,7 @@ def register_to_event(
             .select("id,status_id")
             .eq("eveniment_id", event_id)
             .eq("user_id", current_user.user_id)
+            .neq("status_id", cancelled_status_id)
             .limit(1)
             .execute()
         )

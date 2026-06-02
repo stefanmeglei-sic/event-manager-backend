@@ -43,7 +43,10 @@ class FakeSupabase:
                 {"id": "3", "nume": "draft"},
                 {"id": "4", "nume": "published"},
                 {"id": "5", "nume": "pending"},
+                {"id": "55", "nume": "confirmed"},
                 {"id": "6", "nume": "checked_in"},
+                {"id": "66", "nume": "cancelled"},
+                {"id": "77", "nume": "waiting"},
             ],
             "categorii_eveniment": [{"id": "7", "nume": "workshop"}],
             "tip_participare": [{"id": "8", "nume": "hybrid"}],
@@ -101,6 +104,7 @@ def test_event_statuses_lookup_filters_values() -> None:
     assert response.json() == [
         {"id": "3", "nume": "draft"},
         {"id": "4", "nume": "published"},
+        {"id": "66", "nume": "cancelled"},
     ]
 
 
@@ -110,7 +114,10 @@ def test_registration_statuses_lookup_filters_values() -> None:
     assert response.status_code == 200
     assert response.json() == [
         {"id": "5", "nume": "pending"},
+        {"id": "55", "nume": "confirmed"},
         {"id": "6", "nume": "checked_in"},
+        {"id": "66", "nume": "cancelled"},
+        {"id": "77", "nume": "waiting"},
     ]
 
 
