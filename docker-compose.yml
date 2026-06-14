@@ -1,7 +1,7 @@
 services:
   backend:
     build:
-      context: .
+      context: ./event-manager-backend
       dockerfile: Dockerfile
     container_name: event-manager-backend
     restart: unless-stopped
@@ -14,7 +14,7 @@ services:
 
   frontend:
     build:
-      context: ../event-manager-frontend
+      context: ./event-manager-frontend
       dockerfile: Dockerfile
       args:
         NEXT_PUBLIC_API_URL: http://backend:8000/api/v1
