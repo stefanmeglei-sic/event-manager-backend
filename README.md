@@ -1,40 +1,61 @@
 # Event Manager Backend
 
-FastAPI backend foundation for the university event management system.
+FastAPI backend for the university event management system.
 
-## Setup
+## Docker Compose
 
-1. Create and activate a virtual environment
-2. Install dependencies:
+This repository includes a local Compose file for report packaging:
 
-```bash
-pip install -r requirements.txt
-```
+- [event-manager-backend/docker-compose.yml](docker-compose.yml)
 
-3. Copy environment template and adjust values:
+Canonical project compose remains at:
+
+- [docker-compose.yml](../docker-compose.yml)
+
+## Requirements For Docker Run
+
+Before running Compose, make sure all of the following are true:
+
+1. Docker Engine and Docker Compose are installed.
+2. The sibling frontend repository/folder exists at `../event-manager-frontend`.
+3. Backend env file exists at `./.env`.
+4. Required backend env values are set in `./.env`:
+	- `SUPABASE_URL`
+	- `SUPABASE_SERVICE_ROLE_KEY`
+	- `JWT_SECRET_KEY`
+	- `FRONTEND_PUBLIC_URL` (usually `http://localhost:3000`)
+
+## How To Run
+
+From inside the event-manager-backend folder:
 
 ```bash
 cp .env.example .env
+docker compose up --build
 ```
 
-4. Run the server:
+If `.env` already exists, update it instead of recreating it.
+
+To run in background:
 
 ```bash
-uvicorn main:app --reload
+docker compose up -d --build
 ```
 
-Server URL: http://127.0.0.1:8000
+To stop:
 
-## API Docs
+```bash
+docker compose down
+```
 
-- Swagger UI: http://127.0.0.1:8000/docs
-- OpenAPI JSON: http://127.0.0.1:8000/openapi.json
+## After Start
 
-## Current Scope (Checkpoint 1)
+- Frontend: http://localhost:3000
+- Backend API: http://localhost:8000/api/v1
+- Backend Swagger: http://localhost:8000/docs
 
-- App structure and router skeletons
-- Config and async DB session dependency
-- Auth dependency stubs and role guard
-- Placeholder endpoints for auth, users, events, lookups, registrations
+## Notes
 
-Database migrations and full CRUD implementation are handled in later checkpoints.
+- Backend is built from current directory (`.`).
+- Frontend is built from sibling folder `../event-manager-frontend`.
+- Backend env file is loaded from `./.env`.

@@ -1,0 +1,36 @@
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: event-manager-backend
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    env_file:
+      - ./.env
+    networks:
+      - app-network
+
+  frontend:
+    build:
+      context: ../event-manager-frontend
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: http://backend:8000/api/v1
+        NEXT_PUBLIC_BROWSER_API_URL: http://localhost:8000/api/v1
+    container_name: event-manager-frontend
+    restart: unless-stopped
+    environment:
+      BACKEND_INTERNAL_API_URL: http://backend:8000/api/v1
+      NEXT_PUBLIC_BROWSER_API_URL: http://localhost:8000/api/v1
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge
