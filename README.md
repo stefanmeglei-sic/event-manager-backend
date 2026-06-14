@@ -2,6 +2,9 @@
 
 FastAPI backend for the university event management system.
 
+Related frontend project:
+- [Event Manager Frontend](https://github.com/stefanmeglei-sic/event-manager-frontend)
+
 ## Docker Compose
 
 This repository includes a local Compose file for report packaging:
