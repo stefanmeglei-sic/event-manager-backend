@@ -25,6 +25,35 @@ Before running Compose, make sure all of the following are true:
 	- `JWT_SECRET_KEY`
 	- `FRONTEND_PUBLIC_URL` (usually `http://localhost:3000`)
 
+## Database Migrations
+
+Apply the SQL migrations in this order before running the app against a fresh database:
+
+1. `supabase/migrations/20260422000001_initial_schema.sql`
+2. `supabase/migrations/20260422000002_seed_lookups.sql`
+3. `supabase/migrations/20260427000003_seed_default_users.sql`
+4. `supabase/migrations/20260503000004_seed_demo_test_data.sql`
+5. `supabase/migrations/20260504000005_add_user_name.sql`
+6. `supabase/migrations/20260602000001_soft_delete_lookup_tables.sql`
+
+You can apply them through the Supabase SQL editor, with `psql`, or with the Supabase CLI.
+
+If this repository is not linked yet, link it once first:
+
+```bash
+supabase link --project-ref <your-project-ref>
+```
+
+After linking, push the migrations with:
+
+```bash
+supabase db push
+```
+
+If you prefer to apply them manually with `psql`, run the files one at a time in the order above.
+
+If you want a local one-liner with the CLI, use the command from your own Supabase workflow, but keep the same migration order.
+
 ## How To Run
 
 From inside the event-manager-backend folder:
